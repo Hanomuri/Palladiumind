@@ -1,2 +1,2 @@
 all:
-	gcc PalladiumMind.c -o PalladiumMind
+	gcc Palladiumind.c Entry.c CommandMode.c -o Palladiumind -lm -g
