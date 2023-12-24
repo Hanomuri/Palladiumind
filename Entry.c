@@ -5,10 +5,10 @@
 
 #include "Mind.h"
 
-#define COMPLETED 0x8000
-#define IMPORTANT 0x800
-#define MIGRATION 0x400
-#define HAVE_DATE 0x200
+#define COMPLETED         0x8000
+#define IMPORTANT         0x800
+#define MIGRATION         0x400
+#define HAVE_DATE         0x200
 
 #define TRUE 1
 
@@ -16,8 +16,8 @@
 //□ ⛾ ⛝ FOR LATER
 
 void GetStringEntry(struct Entry* entry) {
-  if(entry->data & COMPLETED) printf("⛝ ");
-  else printf("□ ");
+  if(entry->data & COMPLETED) printf("⛝");
+  else printf("□");
 
   printf("%s ", entry->name);
   
@@ -75,9 +75,12 @@ void ReadEntriesData() {
   Entry entry;
   entry.name = malloc(sizeof(char)*45);
   #define ENTRY_SCAN fscanf(readEntriesFile, "%d%d%[^\n]s", &entry.data, &entry.year, entry.name)
-  while (ENTRY_SCAN != EOF) {
+  for(int currentEntry = 1; ENTRY_SCAN != EOF; currentEntry++) {
+    printf("%d ", currentEntry);
     GetStringEntry(&entry);
-  } 
+  }
   
   fclose(readEntriesFile);
+  free(entry.name);
 }
+

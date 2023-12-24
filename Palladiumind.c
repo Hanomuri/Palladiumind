@@ -15,22 +15,26 @@
 #include "Mind.h"
 #include "CommandMode.h"
 
+#define ESC_KEY               0x1B
+#define COLON                 0x3A
+
+#define HOME                  0x80
 //□ ⛾ ⛝ FOR LATER
 
-#define PALLADIUM_VERSION 0.01
+#define PALLADIUM_VERSION     0.01
 
-#define COLOR_BOLD  "\e[1m"
-#define COLOR_OFF   "\e[m"
+#define COLOR_BOLD            "\e[1m"
+#define COLOR_OFF             "\e[m"
 
 #define EXIT_PALLADIUM_SCREEN puts("\33[?1049l")
-
+//WITH CURSORTOTHEBOTTOm
 void InitPalladium(){
   #define ENTER_PALLADIUM_SCREEN puts("\33[?1049h\033[H")
 
   ENTER_PALLADIUM_SCREEN;
   //printf(COLOR_BOLD "\033[1FTime Palladium Mind %.2f\n" COLOR_OFF, PALLADIUM_VERSION);
 }
-
+//ANOTHER FILE
 void GetCurrentTime(char* timeBuffer) {
 
   time_t now = time(NULL);
@@ -51,9 +55,27 @@ void GetCurrentTime(char* timeBuffer) {
     timeBuffer[4] = ( minutes % 10 ) + '0';
   }
 }
+//PASS TO ANOTHER FILE
+void CursorToTheBottom(){
+  printf("\33[H\33[1F");
 
+  struct winsize window;
+  ioctl(STDOUT_FILENO, TIOCGWINSZ, &window);
+
+  printf("\033[%d;0H", window.ws_row);
+
+}
+
+void FormatData(const __int8_t data) {
+  printf("\033[3;0H\33[J");
+  if(data && HOME) {
+    ReadEntriesData();
+  }
+  CursorToTheBottom();
+}
+//ANOTHER FILE
 void FormatScreen(){
-  printf("\033[H\33[J");
+  printf("\033[H");
   
   char time[5] = "00:00";
   GetCurrentTime(time);
@@ -85,28 +107,15 @@ void FormatScreen(){
   for(int i = 0; i < WIDTH; i++) printf("—");
   printf(COLOR_OFF);
 
-  ReadEntriesData();
+  FormatData(HOME);
 
   fflush(stdout);
-}
-
-void CursorToTheBottom(){
-  printf("\33[H\33[1F");
-
-  struct winsize window;
-  ioctl(STDOUT_FILENO, TIOCGWINSZ, &window);
-
-  printf("\033[%d;0H", window.ws_row);
-
 }
 
 signed main(){
   InitPalladium();
 
   FormatScreen();
-
-  CursorToTheBottom();
-  
   
  struct termios old_settings, new_settings;
 
@@ -117,11 +126,18 @@ signed main(){
   
   tcsetattr(STDIN_FILENO, TCSANOW, &new_settings);
   
+  char c;
+
   while(true){
-    printf("");
-    
-    CommandMode();
-    break;
+    c = getc(stdin);
+
+    if(c == COLON) {
+      printf("%c", COLON);
+      CommandMode();
+      FormatData(HOME);
+    } else if (c == ESC_KEY) {
+      break;
+    }
   }
 
   EXIT_PALLADIUM_SCREEN;
