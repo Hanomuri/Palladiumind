@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include "CommandMode.h"
 #include "Mind.h"
+#include "AVLTree.h"
 
 #define ESC_KEY         0x1B
 #define SPACE_KEY       0x20
@@ -155,46 +156,50 @@ void AddCommand(const CommandList* commandList) {
   free(newEntry.name);
 }
 
-void RemoveEntry(FILE* writeFile, Entry entry, int currentLine, int deleteLine) {
+void RemoveEntry(FILE* writeFile, Entry entry, int currentLine, AVLNode* deleteLineTree) {
   #define REMOVE_WRITE fprintf(writeFile, "%d %d%s\n", entry.data, entry.year, entry.name);
-  if(currentLine != deleteLine) {
+  if( !InAVLTree(deleteLineTree, currentLine) ) {
     REMOVE_WRITE
   }
 }
 
-void CompleteEntry(FILE* writeFile, Entry entry, int currentLine, int deleteLine) {
+void CompleteEntry(FILE* writeFile, Entry entry, int currentLine, AVLNode* completeLineTree) {
   #define COMPLETE_WRITE fprintf(writeFile, "%d %d%s\n", entry.data, entry.year, entry.name);
-  if(currentLine == deleteLine) {
+  if( InAVLTree(completeLineTree, currentLine) ) {
     entry.data |= COMPLETED;
   }
   COMPLETE_WRITE
   currentLine++;
 }
 
-void EntryMap(const CommandList* commandList, void (*EntryOperation)(FILE*, Entry, int, int)) {
+void EntryMap(const CommandList* commandList, void (*EntryOperation)(FILE*, Entry, int, AVLNode*)) {
   CommandBlock* current = commandList->head->next;
   FILE *readFile, *tempFile;
   Entry entry;
   entry.name = malloc(sizeof(char)*45);
-  int changeLine;
+  AVLNode* changeTreeLines = NULL;
   while(current != NULL) {
-    #define FILENAME      "entries.txt"
-    #define TEMP_FILENAME "temp_entries.txt"
-    changeLine = atoi(current->argument);
-    readFile = fopen(FILENAME, "r");
-    tempFile = fopen(TEMP_FILENAME, "w");
-    #define ENTRY_SCAN fscanf(readFile, "%d%d%[^\n]s", &entry.data, &entry.year, entry.name)
-    int currentLine = 1;
-    while (ENTRY_SCAN != EOF) {
-      EntryOperation(tempFile, entry, currentLine, changeLine);
-      currentLine++;
-    } 
-    fclose(readFile);
-    fclose(tempFile);
-    remove(FILENAME);
-    rename(TEMP_FILENAME, FILENAME);
+    InsertToAVL(&changeTreeLines, atoi(current->argument));
     current = current->next;
   }
+
+  #define FILENAME      "entries.txt"
+  #define TEMP_FILENAME "temp_entries.txt"
+  readFile = fopen(FILENAME, "r");
+  tempFile = fopen(TEMP_FILENAME, "w");
+
+  #define ENTRY_SCAN fscanf(readFile, "%d%d%[^\n]s", &entry.data, &entry.year, entry.name)
+  int currentLine = 1;
+  while (ENTRY_SCAN != EOF) {
+    EntryOperation(tempFile, entry, currentLine, changeTreeLines);
+    currentLine++;
+  } 
+  
+  fclose(readFile);
+  fclose(tempFile);
+  remove(FILENAME);
+  rename(TEMP_FILENAME, FILENAME);
+  DeleteAVLTree(changeTreeLines);
   free(entry.name);
 }
 
