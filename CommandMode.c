@@ -20,22 +20,38 @@
 #define MIGRATION       0x400
 #define HAVE_DATE       0x200
 
+void* CommandArenaAlloc(CommandArena* arena) {
+  if(arena->arenaOffset >= arena->buffLength-1) {
+    return NULL;
+  }
+  arena->arenaBuffer[arena->arenaOffset++] = '\0';
+  void* ptr = &arena->arenaBuffer[arena->arenaOffset];
+  return ptr; 
+}
+
+void CommandArenaInit(CommandArena* arena, void *backingBuffer) {
+  arena->arenaBuffer = (unsigned char*) backingBuffer;
+  arena->arenaOffset = 0;
+}
+
 void InitCommandList(CommandList* commandList, const size_t totalSize) {
-  commandList->totalSize = totalSize;
-  commandList->currSize = 0;
-  CommandBlock* command = malloc(sizeof(struct CommandBlock));
-  command->argument  = malloc(sizeof(char)*totalSize);
-  memset(command->argument, 0, totalSize);
-  command->next      = NULL;
-  command->prev      = NULL;
-  commandList->head  = command;
-  commandList->tail  = command;
+  commandList->totalSize  = totalSize;
+  commandList->currSize   = 0;
+  CommandBlock* command   = malloc(sizeof(struct CommandBlock));
+  commandList->masterMind = malloc(sizeof(char)*totalSize*2);
+  memset(commandList->masterMind, 0, totalSize*2);
+  CommandArenaInit(&commandList->arena, commandList->masterMind);
+  command->argument       = CommandArenaAlloc(&commandList->arena); 
+  command->next           = NULL;
+  command->prev           = NULL;
+  commandList->head       = command;
+  commandList->tail       = command;
 }
 
 void DeleteCommandList(CommandList* commandList) {
   #define TAIL_ARGUMENT commandList->tail->argument
+  free(commandList->masterMind);
   while(commandList->head != NULL) {
-    free(TAIL_ARGUMENT);
     if(commandList->tail == commandList->head) {
       commandList->head = NULL;
       free(commandList->tail);
@@ -51,42 +67,41 @@ void AppendChar(CommandList* commandList, char character) {
   if(commandList->currSize == commandList->totalSize) {
     return;
   }
-  commandList->currSize++; 
+  commandList->currSize++;
 
   printf("%c", character);
 
   if(character != SPACE_KEY) {
     #define TAIL_ARGUMENT commandList->tail->argument
     TAIL_ARGUMENT[strlen(TAIL_ARGUMENT)] = character;
+    commandList->arena.arenaBuffer++;
     return;
   }
 
-
   #define NEW_COMMAND_SIZE commandList->totalSize-commandList->currSize  
-  CommandBlock* commandArg = malloc(sizeof(struct CommandBlock));
-  commandArg->argument = malloc(sizeof(char)*(NEW_COMMAND_SIZE));
-  memset(commandArg->argument, 0, NEW_COMMAND_SIZE);
-  commandArg->next = NULL;
-  commandArg->prev = commandList->tail;
-  commandList->tail->next = commandArg;
-  commandList->tail = commandList->tail->next;
+  CommandBlock* commandArg  = malloc(sizeof(struct CommandBlock));
+  commandArg->argument      = CommandArenaAlloc(&commandList->arena); 
+  commandArg->next          = NULL;
+  commandArg->prev          = commandList->tail;
+  commandList->tail->next   = commandArg;
+  commandList->tail         = commandList->tail->next;
 }
 
 void PopChar(CommandList* commandList) {
   if(commandList->currSize == 0) {
     return;
   }
-  
+  commandList->arena.arenaBuffer--;
+  commandList->currSize--;
   printf("\033[1D \033[1D");
 
   #define TAIL_ARGUMENT commandList->tail->argument
   if(strlen(TAIL_ARGUMENT) != 0) {
     TAIL_ARGUMENT[strlen(TAIL_ARGUMENT)-1] = 0;
-    commandList->currSize--;
     return;
   }
 
-  free(TAIL_ARGUMENT);
+  commandList->arena.arenaBuffer[commandList->arena.arenaOffset] = 0;
   commandList->tail = commandList->tail->prev;
   free(commandList->tail->next);
   commandList->tail->next = NULL;
@@ -217,6 +232,8 @@ void CallCommand(const CommandList* commandList) {
 }
 
 void CommandMode() {
+
+
   CommandList commandList;
   InitCommandList(&commandList, 127);
 
