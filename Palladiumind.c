@@ -70,7 +70,7 @@ void CursorToTheBottom(){
 
 }
 
-void FormatData(const __int8_t section) {
+void FormatData(const __int8_t section, char* filepath) {
   printf("\033[3;0H\33[J");
   if (section & HOME) {
     ReadEntriesData();
@@ -78,10 +78,13 @@ void FormatData(const __int8_t section) {
   else if (section & CUSTOM) {
     ReadCustomData();
   }
+  else if (section & ENTRY) {
+    ReadCustomPage(filepath);
+  }
   CursorToTheBottom();
 }
 //ANOTHER FILE
-void FormatScreen(const __uint8_t section){
+void FormatScreen(const __uint8_t section, char* filepath){
   printf("\033[H");
   
   char time[5] = "00:00";
@@ -114,7 +117,7 @@ void FormatScreen(const __uint8_t section){
   for(int i = 0; i < WIDTH; i++) printf("—");
   printf(COLOR_OFF);
 
-  FormatData(section);
+  FormatData(section, filepath);
 
   fflush(stdout);
 }
@@ -125,11 +128,11 @@ signed main(){
   __uint8_t section = 0;
   char* filepath;
   filepath = malloc(60*sizeof(char));
-  memset(filepath, 0, sizeof(filepath));
+  memset(filepath, 0, 60*sizeof(char));
 
   section |= HOME;
 
-  FormatScreen(section);
+  FormatScreen(section, filepath);
   
   struct termios old_settings, new_settings;
 
@@ -148,7 +151,7 @@ signed main(){
     if(c == COLON) {
       printf("%c", COLON);
       CommandMode(&section, filepath);
-      FormatData(section);
+      FormatData(section, filepath);
     } else if (c == ESC_KEY) {
       break;
     }

@@ -37,8 +37,6 @@
 #define READING           0x5000
 #define BOOK_PAGE         0x1
 
-#pragma region CommandArena
-
 static void* CommandArenaAlloc(CommandArena* arena) {
   if(arena->arenaOffset >= arena->buffLength-1) {
     return NULL;
@@ -52,9 +50,6 @@ static void CommandArenaInit(CommandArena* arena, void *backingBuffer) {
   arena->arenaBuffer = (unsigned char*) backingBuffer;
   arena->arenaOffset = 0;
 }
-
-#pragma endregion
-#pragma region CommandListMethods
 
 static void InitCommandList(CommandList* commandList, const size_t totalSize) {
   commandList->totalSize  = totalSize;
@@ -135,7 +130,7 @@ static void PrintCommandList(const CommandList* commandList) {
   FILE* commandFile = fopen("Resources/CMDList.txt", "w");
 
   while(current != NULL) {
-    fprintf(commandFile, "%s %d\n", current->argument, strlen(current->argument));
+    fprintf(commandFile, "%s %ld\n", current->argument, strlen(current->argument));
     current = current->next;
   }
 
@@ -143,7 +138,6 @@ static void PrintCommandList(const CommandList* commandList) {
   fclose(commandFile);
 }
 
-#pragma endregion
 #pragma region EntryMethods
 static void AddCommand(const CommandList* commandList) {
   CommandBlock* current = commandList->head->next;
@@ -171,7 +165,6 @@ static void AddCommand(const CommandList* commandList) {
     //ERROR HANDLING
     return;
   }
-  int c;
   while(current != NULL) {
     #define NEXT current->next
     //MIGATION IS ANOTHER OPTION
@@ -240,7 +233,7 @@ static void EntryMap(const CommandList* commandList, void (*EntryOperation)(FILE
   readFile = fopen(FILENAME, "r");
   tempFile = fopen(TEMP_FILENAME, "w");
 
-  #define ENTRY_SCAN fscanf(readFile, "%d%d%[^\n]s", &entry.data, &entry.year, entry.name)
+  #define ENTRY_SCAN fscanf(readFile, "%hd%hhd%[^\n]s", &entry.data, &entry.year, entry.name)
   int currentLine = 1;
   while (ENTRY_SCAN != EOF) {
     EntryOperation(tempFile, entry, currentLine, changeTreeLines);
@@ -324,15 +317,18 @@ static void AddCustomPage(const CommandList* commandList) {
 static void EnterCustomPage (const CommandList* commandList, size_t enterPage, __uint8_t* type) {
   CustomPage readPage;
   readPage.name = malloc(60*sizeof(char));
+  memset(readPage.name, 0, 60*sizeof(char));
 
   FILE* readCustomFile;
-  readCustomFile = fopen(FILENAME, "r");
+  readCustomFile = fopen("Resources/CustomSection.txt", "r");
 
-  #define CUSTOM_SCAN fscanf(readCustomFile, "%d%[^\n]s", &readPage.sectionType, readPage.name)
+  #define CUSTOM_SCAN fscanf(readCustomFile, "%hhd %[^\n]s", &readPage.sectionType, readPage.name)
   int currentPage = 1;
   while (CUSTOM_SCAN != EOF) {
     if(currentPage == enterPage) {
-      strcpy(*(commandList->filepath), readPage.name);
+      strcpy(*(commandList->filepath), "Custom/");
+      strcat(*(commandList->filepath), readPage.name);
+      strcat(*(commandList->filepath), ".txt");
       *type = ENTRY;
       break;
     }
@@ -346,11 +342,10 @@ static void AddCustomCommand(const CommandList* commandList) {
   CommandBlock* current = commandList->head->next;
 
   __uint8_t typePage;
-  FILE* readCustomEntriesFile = OpenCustomFilepath(*(commandList->filepath), 0);
-  printf("SEXO");
-  fscanf(readCustomEntriesFile, "%d", &typePage);
+  FILE* readCustomEntriesFile = fopen(*(commandList->filepath), "r");
+
+  fscanf(readCustomEntriesFile, "%hhu", &typePage);
   fclose(readCustomEntriesFile);
-  
   
   BookEntry newEntry;
   //IF YOU NEED VOID POINTER, ALE
@@ -382,7 +377,6 @@ static void AddCustomCommand(const CommandList* commandList) {
     //ERROR HANDLING
     return;
   }
-  int c;
   while(current != NULL) {
     #define NEXT current->next
     //MIGATION IS ANOTHER OPTION
@@ -419,15 +413,17 @@ static void AddCustomCommand(const CommandList* commandList) {
         if(current->argument[0] == '-') {
           break;
         }
-        strcat(newEntry.name, current->argument);
+        strcat(newEntry.author, current->argument);
         
         current = current->next;
         if(current != NULL && current->argument[0] != '-') {
-          strcat(newEntry.name, " ");
+          strcat(newEntry.author, " ");
         }
       }
     }
-    current = current->next;
+    if(current != NULL) {
+      current = current->next;
+    }
   }
   if(typePage & BOOK_PAGE) {
     if(strlen(newEntry.author) == 0) {
@@ -443,6 +439,7 @@ static void AddCustomCommand(const CommandList* commandList) {
   if(typePage & BOOK_PAGE) {
     fprintf(writeCustomFile, "%s\n", newEntry.author);
   }
+  fclose(writeCustomFile);
 }
 #pragma endregion
 static void CallCommand(const CommandList* commandList, __uint8_t* type) {
@@ -462,8 +459,7 @@ static void CallCommand(const CommandList* commandList, __uint8_t* type) {
       EntryMap(commandList, CompleteEntry);
     }
   }
-
-  if (*type & ENTRY) {
+  else if (*type & ENTRY) {
     if (strcmp(commandHead->argument, "ADD") == 0) {
       printf("SEXO");
       AddCustomCommand(commandList);
@@ -475,16 +471,12 @@ static void CallCommand(const CommandList* commandList, __uint8_t* type) {
       EntryMap(commandList, CompleteEntry);
     }
   } 
-  #pragma region FUTRE_LOG
   else if (*type & FUTURE_LOG) {
 
   }
-  #pragma endregion
-  #pragma region MONTLY
   else if (*type & MONTLY) {
 
   }
-  #pragma endregion
   else if (*type & CUSTOM) {
     if (strcmp(commandHead->argument, "HOME") == 0 || strcmp(commandHead->argument, "GOHO-M") == 0) {
       (*type) = (*type)<<3;
@@ -523,6 +515,6 @@ void CommandMode(__uint8_t* section, char* filepath) {
     AppendChar(&commandList, c);
     }
   }
-  printf("\033[%dD\33[K", commandList.currSize+1);
+  printf("\033[%ldD\33[K", commandList.currSize+1);
   DeleteCommandList(&commandList);
 }

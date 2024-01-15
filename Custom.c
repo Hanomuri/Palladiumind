@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h> 
+#include <string.h>
 #include "Mind.h"
 #include "Custom.h"
 
@@ -23,14 +24,13 @@
 #define HAVE_DATE         0x200
 
 #define BIT_VALUE(X, Y) (((X) >> (Y)) & 0x1)
-#define u_short __uint8_t
+#define u_short unsigned char
 
 static void PrintCustomSection(const struct CustomPage* customPage) {
   if(customPage->sectionType & BOOK_PAGE) {
     printf("🕮");
   }
-
-  printf("%s", customPage->name);
+  printf("%s\n", customPage->name);
 }
 
 static void PrintBookPageEntry(const struct BookEntry* bookEntry, const u_short type) {
@@ -62,7 +62,7 @@ static void PrintBookPageEntry(const struct BookEntry* bookEntry, const u_short 
     }
   }
 
-  printf("%s - ", bookEntry->name, bookEntry->author);
+  printf("%s - %s", bookEntry->name, bookEntry->author);
   
   if(bookEntry->data & HAVE_DATE) {
     struct tm date = {0}; // To calculate Day
@@ -121,7 +121,7 @@ void ReadCustomData() {
   CustomPage customPage;
   customPage.name = malloc(sizeof(char)*45);
 
-  #define ENTRY_SCAN fscanf(readCustomFile, "%d%[^\n]s", &customPage.sectionType, customPage.name)
+  #define ENTRY_SCAN fscanf(readCustomFile, "%hhd%[^\n]s", &customPage.sectionType, customPage.name)
   for(int currentPage = 1; ENTRY_SCAN != EOF; currentPage++) {
     printf("%d ", currentPage);
     PrintCustomSection(&customPage);
@@ -134,7 +134,7 @@ void ReadCustomData() {
 void ReadCustomPage(const char* filepath) {
   FILE* readCustomEntriesFile = fopen(filepath, "r"); 
   u_short type;
-  fscanf(readCustomEntriesFile, "%d", &type);
+  fscanf(readCustomEntriesFile, "%hhd\n", &type);
 
   if(readCustomEntriesFile == NULL) {
     printf("-EMPTY-\n");
@@ -145,15 +145,17 @@ void ReadCustomPage(const char* filepath) {
     BookEntry bookEntry;
     bookEntry.name   = malloc(sizeof(char)*45);
     bookEntry.author = malloc(sizeof(char)*45);
-    #define CUSTOM_ENTRY_SCAN fscanf(readCustomEntriesFile, "%d%d%[^\n]s", &bookEntry.data, &bookEntry.year, bookEntry.name)
+    memset(bookEntry.name, 0, 45*sizeof(char));
+    memset(bookEntry.author, 0, 45*sizeof(char));
+    #define CUSTOM_ENTRY_SCAN fscanf(readCustomEntriesFile, "%hd%hhd%[^\n]s", &bookEntry.data, &bookEntry.year, bookEntry.name)
     for(int currentEntry = 1; CUSTOM_ENTRY_SCAN != EOF; currentEntry++) {
+      fgetc(readCustomEntriesFile);
       fscanf(readCustomEntriesFile, "%[^\n]s", bookEntry.author);
-      printf("%d ", currentEntry);
       PrintBookPageEntry(&bookEntry, type);
     }
     free(bookEntry.name);
+    free(bookEntry.author);
   }
-  
+
   fclose(readCustomEntriesFile);
-  
 }

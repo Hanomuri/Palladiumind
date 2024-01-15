@@ -103,7 +103,7 @@ void ReadEntriesData() {
 
   Entry entry;
   entry.name = malloc(sizeof(char)*45);
-  #define ENTRY_SCAN fscanf(readEntriesFile, "%d%d%[^\n]s", &entry.data, &entry.year, entry.name)
+  #define ENTRY_SCAN fscanf(readEntriesFile, "%hd%hhd%[^\n]s", &entry.data, &entry.year, entry.name)
   for(int currentEntry = 1; ENTRY_SCAN != EOF; currentEntry++) {
     printf("%d ", currentEntry);
     PrintEntry(&entry);
