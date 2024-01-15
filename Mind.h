@@ -1,10 +1,9 @@
 
-
 // 0000 0000 0000 0000
 // 16 Completed
 // 15-13 Mark
 // 12 Important
-// 11 Migrate
+// 11 Discarted
 // 10 Have date
 // 9-6 Month
 // 5-1 Day
@@ -15,6 +14,12 @@ typedef struct Entry {
   char*         name;
 }Entry;
 
-void GetStringEntry(struct Entry* entry);
+typedef struct BookEntry {
+  short         data;
+  __uint8_t     year;
+  char*         name;
+  char*         author;
+}BookEntry;
+
 void ReadEntriesData();
 

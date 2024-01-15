@@ -9,18 +9,37 @@
 #include "CommandMode.h"
 #include "Mind.h"
 #include "AVLTree.h"
+#include "Custom.h"
 
-#define ESC_KEY         0x1B
-#define SPACE_KEY       0x20
-#define DELETE_KEY      0x7F
-#define ENTER_KEY       '\n'
+#define ESC_KEY           0x1B
+#define SPACE_KEY         0x20
+#define DELETE_KEY        0x7F
+#define ENTER_KEY         '\n'
 
-#define COMPLETED       0x8000
-#define IMPORTANT       0x800
-#define MIGRATION       0x400
-#define HAVE_DATE       0x200
+#define HOME              0x80
+#define FUTURE_LOG        0x40
+#define MONTLY            0x20
+#define CUSTOM            0x10
+#define ENTRY             0x8
 
-void* CommandArenaAlloc(CommandArena* arena) {
+#define COMPLETED         0x8000
+#define TASK              0x0
+#define EVENT             0x1000
+#define RESEARCH          0x2000
+#define NOTE              0x3000
+#define DATE              0x4000
+#define IMPORTANT         0x800
+#define DISCARTED         0x400
+#define HAVE_DATE         0x200
+
+
+#define WHISHLIST         0x4000
+#define READING           0x5000
+#define BOOK_PAGE         0x1
+
+#pragma region CommandArena
+
+static void* CommandArenaAlloc(CommandArena* arena) {
   if(arena->arenaOffset >= arena->buffLength-1) {
     return NULL;
   }
@@ -29,12 +48,15 @@ void* CommandArenaAlloc(CommandArena* arena) {
   return ptr; 
 }
 
-void CommandArenaInit(CommandArena* arena, void *backingBuffer) {
+static void CommandArenaInit(CommandArena* arena, void *backingBuffer) {
   arena->arenaBuffer = (unsigned char*) backingBuffer;
   arena->arenaOffset = 0;
 }
 
-void InitCommandList(CommandList* commandList, const size_t totalSize) {
+#pragma endregion
+#pragma region CommandListMethods
+
+static void InitCommandList(CommandList* commandList, const size_t totalSize) {
   commandList->totalSize  = totalSize;
   commandList->currSize   = 0;
   CommandBlock* command   = malloc(sizeof(struct CommandBlock));
@@ -48,7 +70,7 @@ void InitCommandList(CommandList* commandList, const size_t totalSize) {
   commandList->tail       = command;
 }
 
-void DeleteCommandList(CommandList* commandList) {
+static void DeleteCommandList(CommandList* commandList) {
   #define TAIL_ARGUMENT commandList->tail->argument
   free(commandList->masterMind);
   while(commandList->head != NULL) {
@@ -63,7 +85,7 @@ void DeleteCommandList(CommandList* commandList) {
   }
 }
 
-void AppendChar(CommandList* commandList, char character) {
+static void AppendChar(CommandList* commandList, char character) {
   if(commandList->currSize == commandList->totalSize) {
     return;
   }
@@ -87,7 +109,7 @@ void AppendChar(CommandList* commandList, char character) {
   commandList->tail         = commandList->tail->next;
 }
 
-void PopChar(CommandList* commandList) {
+static void PopChar(CommandList* commandList) {
   if(commandList->currSize == 0) {
     return;
   }
@@ -107,11 +129,10 @@ void PopChar(CommandList* commandList) {
   commandList->tail->next = NULL;
 }
 
-//DEBUGGING STUFFS1
-void PrintCommandList(const CommandList* commandList) {
+static void PrintCommandList(const CommandList* commandList) {
   CommandBlock* current = commandList->head;
 
-  FILE* commandFile = fopen("CMDList.txt", "w");
+  FILE* commandFile = fopen("Resources/CMDList.txt", "w");
 
   while(current != NULL) {
     fprintf(commandFile, "%s %d\n", current->argument, strlen(current->argument));
@@ -122,14 +143,16 @@ void PrintCommandList(const CommandList* commandList) {
   fclose(commandFile);
 }
 
-void AddCommand(const CommandList* commandList) {
+#pragma endregion
+#pragma region EntryMethods
+static void AddCommand(const CommandList* commandList) {
   CommandBlock* current = commandList->head->next;
 
   Entry newEntry;
   newEntry.data = 0b0000000000000000;
-  newEntry.name = malloc(sizeof(char)*45);
+  newEntry.name = malloc(45*sizeof(char));
   newEntry.year = 0b00000000;
-  memset(newEntry.name, 0, 45);
+  memset(newEntry.name, 0, 45*sizeof(char));
   //FIRST THE NAME
   while(current != NULL) {
     //OPTIONS ENTER
@@ -145,6 +168,7 @@ void AddCommand(const CommandList* commandList) {
   }
   if(strlen(newEntry.name) == 0) {
     free(newEntry.name);
+    //ERROR HANDLING
     return;
   }
   int c;
@@ -160,25 +184,38 @@ void AddCommand(const CommandList* commandList) {
       newEntry.data |= (atoi(NEXT->argument) << 5);
       newEntry.data |= (atoi(NEXT->next->argument));
       newEntry.year |= (atoi(NEXT->next->next->argument) -2000);
+    } else if (strcmp(current->argument, "-m") == 0) {
+      if (strcmp(NEXT->argument, "EVENT") == 0) {
+        newEntry.data |= EVENT;
+      } 
+      else if (strcmp(NEXT->argument, "RESEARCH") == 0) {
+        newEntry.data |= RESEARCH;
+      }
+      else if (strcmp(NEXT->argument, "NOTE") == 0) {
+        newEntry.data |= NOTE;
+      }
+      else if (strcmp(NEXT->argument, "DATE") == 0) {
+        newEntry.data |= DATE;
+      }
     }
     current = current->next;
   }
 
-  FILE* writeEntryFile = fopen("entries.txt", "a");
+  FILE* writeEntryFile = fopen("Resources/Entries.txt", "a");
   fprintf(writeEntryFile, "%d %d %s\n", newEntry.data, newEntry.year, newEntry.name);
   fclose(writeEntryFile);
 
   free(newEntry.name);
 }
 
-void RemoveEntry(FILE* writeFile, Entry entry, int currentLine, AVLNode* deleteLineTree) {
+static void RemoveEntry(FILE* writeFile, Entry entry, int currentLine, AVLNode* deleteLineTree) {
   #define REMOVE_WRITE fprintf(writeFile, "%d %d%s\n", entry.data, entry.year, entry.name);
   if( !InAVLTree(deleteLineTree, currentLine) ) {
     REMOVE_WRITE
   }
 }
 
-void CompleteEntry(FILE* writeFile, Entry entry, int currentLine, AVLNode* completeLineTree) {
+static void CompleteEntry(FILE* writeFile, Entry entry, int currentLine, AVLNode* completeLineTree) {
   #define COMPLETE_WRITE fprintf(writeFile, "%d %d%s\n", entry.data, entry.year, entry.name);
   if( InAVLTree(completeLineTree, currentLine) ) {
     entry.data |= COMPLETED;
@@ -187,7 +224,7 @@ void CompleteEntry(FILE* writeFile, Entry entry, int currentLine, AVLNode* compl
   currentLine++;
 }
 
-void EntryMap(const CommandList* commandList, void (*EntryOperation)(FILE*, Entry, int, AVLNode*)) {
+static void EntryMap(const CommandList* commandList, void (*EntryOperation)(FILE*, Entry, int, AVLNode*)) {
   CommandBlock* current = commandList->head->next;
   FILE *readFile, *tempFile;
   Entry entry;
@@ -198,8 +235,8 @@ void EntryMap(const CommandList* commandList, void (*EntryOperation)(FILE*, Entr
     current = current->next;
   }
 
-  #define FILENAME      "entries.txt"
-  #define TEMP_FILENAME "temp_entries.txt"
+  #define FILENAME      "Resources/Entries.txt"
+  #define TEMP_FILENAME "Resources/temp_entries.txt"
   readFile = fopen(FILENAME, "r");
   tempFile = fopen(TEMP_FILENAME, "w");
 
@@ -218,24 +255,253 @@ void EntryMap(const CommandList* commandList, void (*EntryOperation)(FILE*, Entr
   free(entry.name);
 }
 
-void CallCommand(const CommandList* commandList) {
-  CommandBlock* commandHead = commandList->head;
-  
-  if (strcmp(commandHead->argument, "ADD") == 0) {
-    AddCommand(commandList);
-  } else if(strcmp(commandHead->argument, "REMOVE") == 0) {
-    EntryMap(commandList, RemoveEntry);
-  } else if(strcmp(commandHead->argument, "COMPLETE") == 0) {
-    EntryMap(commandList, CompleteEntry);
+#pragma endregion
+#pragma region CustomMethods
+static FILE* OpenCustomFilepath(char* filename, __uint8_t Option) {
+  char* filepath = malloc(60*sizeof(char));
+  memset(filepath, 0, 60*sizeof(char));
+  strcat(filepath, "Custom/");
+  strcat(filepath, filename);
+  strcat(filepath, ".txt");
+  FILE* CustomFile;
+  if (Option & 0x1) {
+    CustomFile = fopen(filepath, "a");
+  } else {
+    CustomFile = fopen(filepath, "r");
   }
-
+  free(filepath);
+  return CustomFile;
 }
 
-void CommandMode() {
+static void AddCustomPage(const CommandList* commandList) {
+  CommandBlock* current = commandList->head->next;
+
+  CustomPage newCustomPage;
+  newCustomPage.sectionType = 0b00000000;
+  newCustomPage.name = malloc(60*sizeof(char));
+  memset(newCustomPage.name, 0, 60*sizeof(char));
+  //FIRST THE NAME
+  while(current != NULL) {
+    //OPTIONS ENTER
+    if(current->argument[0] == '-') {
+      break;
+    }
+    strcat(newCustomPage.name, current->argument);
+    
+    current = current->next;
+    if(current != NULL && current->argument[0] != '-') {
+      strcat(newCustomPage.name, " ");
+    }
+  }
+
+  if(strlen(newCustomPage.name) == 0) {
+    free(newCustomPage.name);
+    //ERROR HANDLING
+    return;
+  }
+
+  if(strcmp(current->argument, "-BOOKPAGE") == 0) {
+    newCustomPage.sectionType |= BOOK_PAGE;
+  }
+  else {
+    free(newCustomPage.name);
+    //ERROR HANDLING
+    return;
+  }
+
+  FILE* writeCustomSectionFile = fopen("Resources/CustomSection.txt", "a");
+  fprintf(writeCustomSectionFile, "%d %s\n", newCustomPage.sectionType, newCustomPage.name);
+  fclose(writeCustomSectionFile);
+  
+  FILE* writeCustomFile = OpenCustomFilepath(newCustomPage.name, 1);
+  fprintf(writeCustomFile, "%d\n", newCustomPage.sectionType);
+  fclose(writeCustomFile);
+
+  free(newCustomPage.name);
+}
 
 
+static void EnterCustomPage (const CommandList* commandList, size_t enterPage, __uint8_t* type) {
+  CustomPage readPage;
+  readPage.name = malloc(60*sizeof(char));
+
+  FILE* readCustomFile;
+  readCustomFile = fopen(FILENAME, "r");
+
+  #define CUSTOM_SCAN fscanf(readCustomFile, "%d%[^\n]s", &readPage.sectionType, readPage.name)
+  int currentPage = 1;
+  while (CUSTOM_SCAN != EOF) {
+    if(currentPage == enterPage) {
+      strcpy(*(commandList->filepath), readPage.name);
+      *type = ENTRY;
+      break;
+    }
+    currentPage++;
+  } 
+
+  free(readPage.name);
+  fclose(readCustomFile);
+}
+static void AddCustomCommand(const CommandList* commandList) {
+  CommandBlock* current = commandList->head->next;
+
+  __uint8_t typePage;
+  FILE* readCustomEntriesFile = OpenCustomFilepath(*(commandList->filepath), 0);
+  printf("SEXO");
+  fscanf(readCustomEntriesFile, "%d", &typePage);
+  fclose(readCustomEntriesFile);
+  
+  
+  BookEntry newEntry;
+  //IF YOU NEED VOID POINTER, ALE
+  newEntry.data = 0b0000000000000000;
+  newEntry.name = malloc(45*sizeof(char));
+  newEntry.year = 0b00000000;
+  memset(newEntry.name, 0, 45*sizeof(char));
+  
+  newEntry.author = malloc(45*sizeof(char));
+  memset(newEntry.author, 0, 45*sizeof(char)); 
+  //FIRST THE NAME
+  while(current != NULL) {
+    //OPTIONS ENTER
+    if(current->argument[0] == '-') {
+      break;
+    }
+    strcat(newEntry.name, current->argument);
+    
+    current = current->next;
+    if(current != NULL && current->argument[0] != '-') {
+      strcat(newEntry.name, " ");
+    }
+  }
+  if(strlen(newEntry.name) == 0) {
+    free(newEntry.name);
+    if(typePage & BOOK_PAGE) {
+      free(newEntry.author);
+    }
+    //ERROR HANDLING
+    return;
+  }
+  int c;
+  while(current != NULL) {
+    #define NEXT current->next
+    //MIGATION IS ANOTHER OPTION
+    if(strcmp(current->argument, "-c") == 0) {
+      newEntry.data |= COMPLETED;
+    } else if (strcmp(current->argument, "-i") == 0) {
+      newEntry.data |= IMPORTANT;
+    } else if (strcmp(current->argument, "-d") == 0) {
+      newEntry.data |= HAVE_DATE;
+      newEntry.data |= (atoi(NEXT->argument) << 5);
+      newEntry.data |= (atoi(NEXT->next->argument));
+      newEntry.year |= (atoi(NEXT->next->next->argument) -2000);
+    } else if (strcmp(current->argument, "-m") == 0 && typePage & BOOK_PAGE) {
+      if (strcmp(NEXT->argument, "EVENT") == 0) {
+        newEntry.data |= EVENT;
+      } 
+      else if (strcmp(NEXT->argument, "RESEARCH") == 0) {
+        newEntry.data |= RESEARCH;
+      }
+      else if (strcmp(NEXT->argument, "NOTE") == 0) {
+        newEntry.data |= NOTE;
+      }
+      else if (strcmp(NEXT->argument, "WISHLIST") == 0) {
+        newEntry.data |= WHISHLIST;
+      }
+      else if (strcmp(NEXT->argument, "READING") == 0) {
+        newEntry.data |= READING;
+      }
+    }
+    else if (strcmp(current->argument, "-a") == 0 && typePage & BOOK_PAGE) {
+      current = current->next;
+      while(current != NULL) {
+        //OPTIONS ENTER
+        if(current->argument[0] == '-') {
+          break;
+        }
+        strcat(newEntry.name, current->argument);
+        
+        current = current->next;
+        if(current != NULL && current->argument[0] != '-') {
+          strcat(newEntry.name, " ");
+        }
+      }
+    }
+    current = current->next;
+  }
+  if(typePage & BOOK_PAGE) {
+    if(strlen(newEntry.author) == 0) {
+      free(newEntry.name);
+      free(newEntry.author);
+      //ERROR HANDLING
+      return;
+    }
+  }
+
+  FILE* writeCustomFile = fopen(*(commandList->filepath), "a");
+  fprintf(writeCustomFile, "%d %d %s\n", newEntry.data, newEntry.year, newEntry.name);
+  if(typePage & BOOK_PAGE) {
+    fprintf(writeCustomFile, "%s\n", newEntry.author);
+  }
+}
+#pragma endregion
+static void CallCommand(const CommandList* commandList, __uint8_t* type) {
+  CommandBlock* commandHead = commandList->head;
+  
+  if(*type & HOME) {
+    if (strcmp(commandHead->argument, "CUSTOM") == 0) {
+      (*type) = (*type)>>3;
+    }
+    else if (strcmp(commandHead->argument, "ADD") == 0) {
+      AddCommand(commandList);
+    } 
+    else if (strcmp(commandHead->argument, "REMOVE") == 0) {
+      EntryMap(commandList, RemoveEntry);
+    } 
+    else if (strcmp(commandHead->argument, "COMPLETE") == 0) {
+      EntryMap(commandList, CompleteEntry);
+    }
+  }
+
+  if (*type & ENTRY) {
+    if (strcmp(commandHead->argument, "ADD") == 0) {
+      printf("SEXO");
+      AddCustomCommand(commandList);
+    } 
+    else if (strcmp(commandHead->argument, "REMOVE") == 0) {
+      EntryMap(commandList, RemoveEntry);
+    } 
+    else if (strcmp(commandHead->argument, "COMPLETE") == 0) {
+      EntryMap(commandList, CompleteEntry);
+    }
+  } 
+  #pragma region FUTRE_LOG
+  else if (*type & FUTURE_LOG) {
+
+  }
+  #pragma endregion
+  #pragma region MONTLY
+  else if (*type & MONTLY) {
+
+  }
+  #pragma endregion
+  else if (*type & CUSTOM) {
+    if (strcmp(commandHead->argument, "HOME") == 0 || strcmp(commandHead->argument, "GOHO-M") == 0) {
+      (*type) = (*type)<<3;
+    }
+    else if (strcmp(commandHead->argument, "ADD") == 0) {
+      AddCustomPage(commandList);
+    }
+    else if (strcmp(commandHead->argument, "ENTER") == 0) {
+      EnterCustomPage(commandList, atoi(commandHead->next->argument), type);
+    }
+  }
+}
+
+void CommandMode(__uint8_t* section, char* filepath) {
   CommandList commandList;
   InitCommandList(&commandList, 127);
+  commandList.filepath = &filepath;
 
   char c;
 
@@ -246,7 +512,7 @@ void CommandMode() {
       break;
     } 
     else if(c == ENTER_KEY) {
-      CallCommand(&commandList);
+      CallCommand(&commandList, section);
       PrintCommandList(&commandList);
       break;
     } 

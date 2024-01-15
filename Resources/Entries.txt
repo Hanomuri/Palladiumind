@@ -1,0 +1,7 @@
+-30030 3 A
+8192 0 A
+12288 0 B
+16384 0 P
+4096 0 Efectiviwonder
+0 0 Asesinato en Canadian Express
+-32158 23 Hola

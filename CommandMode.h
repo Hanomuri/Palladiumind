@@ -15,6 +15,7 @@ typedef struct CommandBlock {
 } CommandBlock;
 
 typedef struct CommandList {
+  char**            filepath;
   unsigned char*    masterMind;         //CONTAIN ALL CHAR
   size_t            totalSize;
   size_t            currSize;
@@ -23,4 +24,4 @@ typedef struct CommandList {
   CommandBlock*     tail;
 } CommandList;
 
-void CommandMode();
+void CommandMode(__uint8_t* section, char* filepath);

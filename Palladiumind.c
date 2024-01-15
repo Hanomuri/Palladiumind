@@ -14,12 +14,16 @@
 
 #include "Mind.h"
 #include "CommandMode.h"
+#include "Custom.h"
 
 #define ESC_KEY               0x1B
 #define COLON                 0x3A
 
 #define HOME                  0x80
-//□ ⛾ ⛝ FOR LATER
+#define FUTURE_LOG            0x40
+#define MONTLY                0x20
+#define CUSTOM                0x10
+#define ENTRY                 0x8
 
 #define PALLADIUM_VERSION     0.01
 
@@ -66,15 +70,18 @@ void CursorToTheBottom(){
 
 }
 
-void FormatData(const __int8_t data) {
+void FormatData(const __int8_t section) {
   printf("\033[3;0H\33[J");
-  if(data && HOME) {
+  if (section & HOME) {
     ReadEntriesData();
+  } 
+  else if (section & CUSTOM) {
+    ReadCustomData();
   }
   CursorToTheBottom();
 }
 //ANOTHER FILE
-void FormatScreen(){
+void FormatScreen(const __uint8_t section){
   printf("\033[H");
   
   char time[5] = "00:00";
@@ -90,7 +97,7 @@ void FormatScreen(){
   strcpy(pagesName[0], "Home");
   strcpy(pagesName[1], "FutureLog");
   strcpy(pagesName[2], "Montly");
-  strcpy(pagesName[3], "Custome");
+  strcpy(pagesName[3], "Custom");
 
   if(WIDTH > 45){
     for(int i = 0; i < 4; i++){
@@ -107,7 +114,7 @@ void FormatScreen(){
   for(int i = 0; i < WIDTH; i++) printf("—");
   printf(COLOR_OFF);
 
-  FormatData(HOME);
+  FormatData(section);
 
   fflush(stdout);
 }
@@ -115,9 +122,16 @@ void FormatScreen(){
 signed main(){
   InitPalladium();
 
-  FormatScreen();
+  __uint8_t section = 0;
+  char* filepath;
+  filepath = malloc(60*sizeof(char));
+  memset(filepath, 0, sizeof(filepath));
+
+  section |= HOME;
+
+  FormatScreen(section);
   
- struct termios old_settings, new_settings;
+  struct termios old_settings, new_settings;
 
   tcgetattr(STDIN_FILENO, &old_settings);
   new_settings = old_settings;
@@ -133,8 +147,8 @@ signed main(){
 
     if(c == COLON) {
       printf("%c", COLON);
-      CommandMode();
-      FormatData(HOME);
+      CommandMode(&section, filepath);
+      FormatData(section);
     } else if (c == ESC_KEY) {
       break;
     }
