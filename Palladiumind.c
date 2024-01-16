@@ -3,74 +3,38 @@
 #include <stdbool.h>
 #include <string.h>
 
-//THIS IS FOR TERMINAL SIZE DETECTION
-#include <sys/ioctl.h>
+#include <ctype.h>
+#include <termios.h>
 #include <unistd.h>
 
-#include <time.h>
-
-#include<ctype.h>
-#include<termios.h>
-
-#include "Mind.h"
-#include "CommandMode.h"
-#include "Custom.h"
+#include "Scripts/Mind.h"
+#include "Scripts/Screen.h"
+#include "Scripts/CommandMode.h"
+#include "Scripts/Custom.h"
 
 #define ESC_KEY               0x1B
 #define COLON                 0x3A
 
-#define HOME                  0x80
-#define FUTURE_LOG            0x40
-#define MONTLY                0x20
-#define CUSTOM                0x10
-#define ENTRY                 0x8
+#define PALLADIUM_VERSION     0.15
 
-#define PALLADIUM_VERSION     0.01
-
-#define COLOR_BOLD            "\e[1m"
-#define COLOR_OFF             "\e[m"
-
-#define EXIT_PALLADIUM_SCREEN puts("\33[?1049l")
+#define EXIT_PALLADIUM_SCREEN printf("\33[?1049l")
 //WITH CURSORTOTHEBOTTOm
 void InitPalladium(){
-  #define ENTER_PALLADIUM_SCREEN puts("\33[?1049h\033[H")
+  #define ENTER_PALLADIUM_SCREEN printf("\33[?1049h\033[H")
 
   ENTER_PALLADIUM_SCREEN;
-  //printf(COLOR_BOLD "\033[1FTime Palladium Mind %.2f\n" COLOR_OFF, PALLADIUM_VERSION);
-}
-//ANOTHER FILE
-void GetCurrentTime(char* timeBuffer) {
 
-  time_t now = time(NULL);
-  struct tm *now_tm = localtime(&now);
+  struct termios old_settings, new_settings;
 
-  int hour = now_tm->tm_hour;
-  int minutes = now_tm->tm_min;
+  tcgetattr(STDIN_FILENO, &old_settings);
+  new_settings = old_settings;
+
+  new_settings.c_lflag &= (~ICANON & ~ECHO);
   
-  if(hour/10.0 <= 1) timeBuffer[1] = hour + '0';
-  else {
-    timeBuffer[0] = ( hour / 10 ) + '0';
-    timeBuffer[1] = ( hour % 10 ) + '0';
-  }
-  
-  if(minutes/10.0 <= 1) timeBuffer[4] = minutes + '0';
-  else {
-    timeBuffer[3] = ( minutes / 10 ) + '0';
-    timeBuffer[4] = ( minutes % 10 ) + '0';
-  }
-}
-//PASS TO ANOTHER FILE
-void CursorToTheBottom(){
-  printf("\33[H\33[1F");
-
-  struct winsize window;
-  ioctl(STDOUT_FILENO, TIOCGWINSZ, &window);
-
-  printf("\033[%d;0H", window.ws_row);
-
+  tcsetattr(STDIN_FILENO, TCSANOW, &new_settings);
 }
 
-void FormatData(const __int8_t section, char* filepath) {
+static void FormatData(const unsigned char section, char* filepath) {
   printf("\033[3;0H\33[J");
   if (section & HOME) {
     ReadEntriesData();
@@ -83,65 +47,19 @@ void FormatData(const __int8_t section, char* filepath) {
   }
   CursorToTheBottom();
 }
-//ANOTHER FILE
-void FormatScreen(const __uint8_t section, char* filepath){
-  printf("\033[H");
-  
-  char time[5] = "00:00";
-  GetCurrentTime(time);
-
-  struct winsize terminal;
-  ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal);
-  #define WIDTH terminal.ws_col
-
-  printf(COLOR_BOLD "\033[1FPalladiumind" COLOR_OFF);
-  
-  char pagesName[4][10];
-  strcpy(pagesName[0], "Home");
-  strcpy(pagesName[1], "FutureLog");
-  strcpy(pagesName[2], "Montly");
-  strcpy(pagesName[3], "Custom");
-
-  if(WIDTH > 45){
-    for(int i = 0; i < 4; i++){
-      for(int k = 0; k < (WIDTH-40)/5; k++){
-        printf(" ");
-      }
-      printf("%s", pagesName[i]);
-    }
-  }
-  
-  printf("\33[0;%dH%s\n", WIDTH-4, time);
-  
-  printf(COLOR_BOLD);
-  for(int i = 0; i < WIDTH; i++) printf("—");
-  printf(COLOR_OFF);
-
-  FormatData(section, filepath);
-
-  fflush(stdout);
-}
 
 signed main(){
   InitPalladium();
 
-  __uint8_t section = 0;
+  unsigned char section = 0;
   char* filepath;
   filepath = malloc(60*sizeof(char));
   memset(filepath, 0, 60*sizeof(char));
 
   section |= HOME;
 
-  FormatScreen(section, filepath);
-  
-  struct termios old_settings, new_settings;
-
-  tcgetattr(STDIN_FILENO, &old_settings);
-  new_settings = old_settings;
-
-  new_settings.c_lflag &= (~ICANON & ~ECHO);
-  
-  tcsetattr(STDIN_FILENO, TCSANOW, &new_settings);
+  FormatScreen(section);
+  FormatData(section, filepath);
   
   char c;
 
@@ -152,7 +70,14 @@ signed main(){
       printf("%c", COLON);
       CommandMode(&section, filepath);
       FormatData(section, filepath);
-    } else if (c == ESC_KEY) {
+    }
+    else if (c == ESC_KEY && section & ENTRY) {
+      section = section<<1;
+      memset(filepath, 0, 60*sizeof(char));
+      FormatScreen(section);
+      FormatData(section, filepath);
+    } 
+    else if (c == ESC_KEY) {
       break;
     }
   }
