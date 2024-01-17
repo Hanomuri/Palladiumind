@@ -79,7 +79,7 @@ static void AddCustomPage(const CommandList* commandList) {
   if(strcmp(current->argument, "-BOOKPAGE") == 0) {
     newCustomPage.sectionType |= BOOK_PAGE;
   }
-  else if(strcmp(current->argument, "-TODOPAGE") == 0 && strcmp(current->argument, "-TODOLIST") == 0) {
+  else if(strcmp(current->argument, "-TODOPAGE") == 0 || strcmp(current->argument, "-TODOLIST") == 0) {
     newCustomPage.sectionType = 0;
   }
   else {

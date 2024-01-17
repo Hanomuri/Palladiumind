@@ -222,10 +222,7 @@ void BookDisplayBoard(const char* filepath) {
     }
     
     if(!IsEmpty(&toReadBooks)) {
-      printf("%s", toReadBooks.head->bookEntry.name);
-      for(int k = strlen(toReadBooks.head->bookEntry.name); k < TerminalWidth; k++){
-        printf(" ");
-      }
+      printf("%s\n", toReadBooks.head->bookEntry.name);
       RemoveBookListHead(&toReadBooks);
     }
     else {
