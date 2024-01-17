@@ -3,8 +3,9 @@
 #include <math.h>
 #include <time.h> 
 #include <string.h>
-#include "Mind.h"
+#include "DataStructures/BookLinkedList.h"
 #include "Custom.h"
+#include "Screen.h"
 
 #define BOOK_PAGE 0x1
 
@@ -21,6 +22,8 @@
 static void PrintCustomSection(const struct CustomPage* customPage) {
   if(customPage->sectionType & BOOK_PAGE) {
     printf("🕮");
+  } else {
+    printf("☑");
   }
   printf("%s\n", customPage->name);
 }
@@ -42,8 +45,8 @@ static void PrintScore(unsigned char number) {
 }
 
 static void PrintBookPageEntry(const struct BookEntry* bookEntry, const u_short type) {
-  u_short markBuffer = 0;
-  for(u_short k = 12; k < 15; k++) {
+  unsigned char markBuffer = 0;
+  for(unsigned char k = 12; k < 15; k++) {
     if(BIT_VALUE(bookEntry->data, k)) markBuffer += pow(2, k-12);
   }
   if(type & BOOK_PAGE) {
@@ -99,11 +102,10 @@ void ReadCustomData() {
     return;
   }
 
-  CustomPage customPage;
-  customPage.name = malloc(sizeof(char)*45);
+  CustomPage customPage = GenCustomPage();
 
-  #define ENTRY_SCAN fscanf(readCustomFile, "%hhd%[^\n]s", &customPage.sectionType, customPage.name)
-  for(int currentPage = 1; ENTRY_SCAN != EOF; currentPage++) {
+  #define CUSTOM_PAGE_SCAN fscanf(readCustomFile, "%hhd%[^\n]s", &customPage.sectionType, customPage.name)
+  for(int currentPage = 1; CUSTOM_PAGE_SCAN != EOF; currentPage++) {
     printf("%d ", currentPage);
     PrintCustomSection(&customPage);
   }
@@ -117,17 +119,8 @@ void ReadCustomPage(const char* filepath) {
   u_short type;
   fscanf(readCustomEntriesFile, "%hhd\n", &type);
 
-  if(readCustomEntriesFile == NULL) {
-    printf("-EMPTY-\n");
-    return;
-  }
-
   if(type & BOOK_PAGE) {
-    BookEntry bookEntry;
-    bookEntry.name   = malloc(sizeof(char)*45);
-    bookEntry.author = malloc(sizeof(char)*45);
-    memset(bookEntry.name, 0, 45*sizeof(char));
-    memset(bookEntry.author, 0, 45*sizeof(char));
+    BookEntry bookEntry = GenBookEntry();
     #define CUSTOM_ENTRY_SCAN fscanf(readCustomEntriesFile, "%hd%hhd%hhd %[^\n]s", &bookEntry.data, &bookEntry.year, &bookEntry.score, bookEntry.name)
     for(int currentEntry = 1; CUSTOM_ENTRY_SCAN != EOF; currentEntry++) {
       fgetc(readCustomEntriesFile);
@@ -136,7 +129,133 @@ void ReadCustomPage(const char* filepath) {
     }
     free(bookEntry.name);
     free(bookEntry.author);
+  } else {
+    Entry entry = GenEntry();
+    #define ENTRY_SCAN fscanf(readCustomEntriesFile, "%hd%hhd%hhd %[^\n]s", &entry.data, &entry.year, &entry.group, entry.name)
+    for(int currentEntry = 1; ENTRY_SCAN != EOF; currentEntry++) {
+      printf("%d ", currentEntry);
+      PrintEntry(&entry);
+    }
+    free(entry.name);
   }
 
   fclose(readCustomEntriesFile);
+}
+
+void BookDisplayBoard(const char* filepath) {
+  FILE* readBookFile = fopen(filepath, "r"); 
+  unsigned char type;
+  fscanf(readBookFile, "%hhd\n", &type);
+
+  if(!(type & BOOK_PAGE)) {
+    return;
+  }
+  unsigned char TerminalWidth = GetTerminalWidth();
+  if (TerminalWidth < 93) {
+    return;
+  }
+  TerminalWidth /= 3;
+  BookList completedBooks;
+  BookList readingBooks;
+  BookList toReadBooks;
+  InitBookList(&completedBooks);
+  InitBookList(&readingBooks);
+  InitBookList(&toReadBooks);
+  unsigned char markBuffer = 0;
+  BookEntry bookEntry = GenBookEntry();
+  #define BOOK_SCAN fscanf(readBookFile, "%hd%hhd%hhd %[^\n]s", &bookEntry.data, &bookEntry.year, &bookEntry.score, bookEntry.name)
+  for(int currentEntry = 1; BOOK_SCAN != EOF; currentEntry++) {
+    fgetc(readBookFile);
+    fscanf(readBookFile, "%[^\n]s", bookEntry.author);
+    for(unsigned char k = 12; k < 15; k++) {
+      if(BIT_VALUE(bookEntry.data, k)) markBuffer += pow(2, k-12);
+    }
+    
+    if (markBuffer == READING_MARK) {
+      InsertBookList(&readingBooks, bookEntry);
+    }
+    else if (bookEntry.data & COMPLETED && markBuffer == 0) {
+      InsertBookList(&completedBooks, bookEntry);
+    } 
+    else if (markBuffer == 0){
+      InsertBookList(&toReadBooks, bookEntry);
+    }
+    markBuffer = 0;
+  }
+
+  printf("\033[3;0H\33[J");
+
+  printf("Completed");
+  for(int k = strlen("completed"); k < TerminalWidth; k++){
+    printf(" ");
+  }
+  printf("Reading");
+  for(int k = strlen("Reading"); k < TerminalWidth; k++){
+    printf(" ");
+  }
+  printf("To Read\n");
+  while (!IsEmpty(&completedBooks) || !IsEmpty(&readingBooks) || !IsEmpty(&toReadBooks)) {
+    if(!IsEmpty(&completedBooks)) {
+      printf("%s", completedBooks.head->bookEntry.name);
+      for(int k = strlen(completedBooks.head->bookEntry.name); k < TerminalWidth; k++){
+        printf(" ");
+      }
+      RemoveBookListHead(&completedBooks);
+    }
+    else {
+      for(int k = 0; k < TerminalWidth; k++){
+        printf(" ");
+      }
+    }
+
+    if(!IsEmpty(&readingBooks)) {
+      printf("%s", readingBooks.head->bookEntry.name);
+      for(int k = strlen(readingBooks.head->bookEntry.name); k < TerminalWidth; k++){
+        printf(" ");
+      }
+      RemoveBookListHead(&readingBooks);
+    }
+    else {
+      for(int k = 0; k < TerminalWidth; k++){
+        printf(" ");
+      }
+    }
+    
+    if(!IsEmpty(&toReadBooks)) {
+      printf("%s", toReadBooks.head->bookEntry.name);
+      for(int k = strlen(toReadBooks.head->bookEntry.name); k < TerminalWidth; k++){
+        printf(" ");
+      }
+      RemoveBookListHead(&toReadBooks);
+    }
+    else {
+      for(int k = 0; k < TerminalWidth; k++){
+        printf(" ");
+      }
+    }
+  }
+  
+  free(bookEntry.name);
+  free(bookEntry.author);
+  fclose(readBookFile);
+}
+
+BookEntry GenBookEntry() {
+  BookEntry newEntry;
+  newEntry.data   = 0b0000000000000000;
+  newEntry.year   = 0b00000000;
+  newEntry.score  = 0b00000000;
+  newEntry.name   = (char*)malloc(30*sizeof(char));
+  memset(newEntry.name, 0, 30*sizeof(char));
+  newEntry.author = (char*)malloc(30*sizeof(char));
+  memset(newEntry.author, 0, 30*sizeof(char));
+  return newEntry;
+}
+
+CustomPage GenCustomPage() {
+  CustomPage newCustomPage;
+  newCustomPage.sectionType = 0b00000000;
+  newCustomPage.name = (char*)malloc(60*sizeof(char));
+  memset(newCustomPage.name, 0, 60*sizeof(char));
+  return newCustomPage;
 }

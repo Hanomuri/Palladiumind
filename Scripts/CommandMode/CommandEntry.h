@@ -30,12 +30,7 @@
 static void AddEntryCommand(const CommandList* commandList) {
   CommandBlock* current = commandList->head->next;
 
-  Entry newEntry;
-  newEntry.data   = 0b0000000000000000;
-  newEntry.name   = (char*)malloc(45*sizeof(char));
-  newEntry.year   = 0b00000000;
-  newEntry.group  = 0b00000000;
-  memset(newEntry.name, 0, 45*sizeof(char));
+  Entry newEntry = GenEntry();
   //FIRST THE NAME
   while(current != NULL) {
     //OPTIONS ENTER
@@ -124,8 +119,7 @@ static void DiscardEntry(FILE* writeFile, Entry entry, int currentLine, AVLNode*
 static void EntryMap(const CommandList* commandList, void (*EntryOperation)(FILE*, Entry, int, AVLNode*)) {
   CommandBlock* current = commandList->head->next;
   FILE *readFile, *tempFile;
-  Entry entry;
-  entry.name = (char*)malloc(sizeof(char)*45);
+  Entry entry = GenEntry();
   AVLNode* changeTreeLines = NULL;
   while(current != NULL) {
     InsertToAVL(&changeTreeLines, atoi(current->argument));

@@ -42,6 +42,7 @@ char bits is 2000+year
 #endif
 
 #define BIT_VALUE(X, Y) (((X) >> (Y)) & 0x1)
+#define CLEAR_BIT(x, n) (n & (~(1 << (n - 1))))
 
 typedef struct Entry {
   short               data;
@@ -58,7 +59,8 @@ typedef struct BookEntry {
   unsigned char       year;
 }BookEntry;
 
+Entry GenEntry();
+BookEntry GenBookEntry();
+void PrintEntry(const struct Entry* entry);
 void PrintDateEntry(short entryData, unsigned char yearData);
 void ReadEntriesData();
-
-

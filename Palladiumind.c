@@ -1,3 +1,4 @@
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -6,6 +7,7 @@
 #include <ctype.h>
 #include <termios.h>
 #include <unistd.h>
+
 
 #include "Scripts/Mind.h"
 #include "Scripts/Screen.h"
@@ -18,6 +20,8 @@
 #define PALLADIUM_VERSION     0.15
 
 #define EXIT_PALLADIUM_SCREEN printf("\33[?1049l")
+#define SHOW_CURSOR printf("\e[?25h")
+#define INVISIBLE_CURSOR printf("\e[?25l")
 //WITH CURSORTOTHEBOTTOm
 void InitPalladium(){
   #define ENTER_PALLADIUM_SCREEN printf("\33[?1049h\033[H")
@@ -32,20 +36,8 @@ void InitPalladium(){
   new_settings.c_lflag &= (~ICANON & ~ECHO);
   
   tcsetattr(STDIN_FILENO, TCSANOW, &new_settings);
-}
 
-static void FormatData(const unsigned char section, char* filepath) {
-  printf("\033[3;0H\33[J");
-  if (section & HOME) {
-    ReadEntriesData();
-  } 
-  else if (section & CUSTOM) {
-    ReadCustomData();
-  }
-  else if (section & ENTRY) {
-    ReadCustomPage(filepath);
-  }
-  CursorToTheBottom();
+  INVISIBLE_CURSOR;
 }
 
 signed main(){
@@ -57,10 +49,11 @@ signed main(){
   memset(filepath, 0, 60*sizeof(char));
 
   section |= HOME;
-
-  FormatScreen(section);
-  FormatData(section, filepath);
   
+  pthread_t checkThread;
+  FormatData(section, filepath);
+  pthread_create(&checkThread, NULL, DisplayCheck, &section);
+
   char c;
 
   while(true){
@@ -69,7 +62,6 @@ signed main(){
     if(c == COLON) {
       printf("%c", COLON);
       CommandMode(&section, filepath);
-      FormatData(section, filepath);
     }
     else if (c == ESC_KEY && section & ENTRY) {
       section = section<<1;

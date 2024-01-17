@@ -55,10 +55,7 @@ static FILE* OpenCustomFilepath(char* filename, unsigned char Option) {
 static void AddCustomPage(const CommandList* commandList) {
   CommandBlock* current = commandList->head->next;
 
-  CustomPage newCustomPage;
-  newCustomPage.sectionType = 0b00000000;
-  newCustomPage.name = (char*)malloc(60*sizeof(char));
-  memset(newCustomPage.name, 0, 60*sizeof(char));
+  CustomPage newCustomPage = GenCustomPage();
   //FIRST THE NAME
   while(current != NULL) {
     //OPTIONS ENTER
@@ -82,6 +79,9 @@ static void AddCustomPage(const CommandList* commandList) {
   if(strcmp(current->argument, "-BOOKPAGE") == 0) {
     newCustomPage.sectionType |= BOOK_PAGE;
   }
+  else if(strcmp(current->argument, "-TODOPAGE") == 0 && strcmp(current->argument, "-TODOLIST") == 0) {
+    newCustomPage.sectionType = 0;
+  }
   else {
     free(newCustomPage.name);
     //ERROR HANDLING
@@ -101,9 +101,7 @@ static void AddCustomPage(const CommandList* commandList) {
 
 
 static void EnterCustomPage (const CommandList* commandList, size_t enterPage, unsigned char* type) {
-  CustomPage readPage;
-  readPage.name = (char*)malloc(60*sizeof(char));
-  memset(readPage.name, 0, 60*sizeof(char));
+  CustomPage readPage = GenCustomPage();
 
   FILE* readCustomFile;
   readCustomFile = fopen("Resources/CustomSection.txt", "r");
@@ -133,16 +131,8 @@ static void AddCustomCommand(const CommandList* commandList) {
   fscanf(readCustomEntriesFile, "%hhu", &typePage);
   fclose(readCustomEntriesFile);
   
-  BookEntry newEntry;
-  //IF YOU NEED VOID POINTER, ALE
-  newEntry.data   = 0b0000000000000000;
-  newEntry.name   = (char*)malloc(45*sizeof(char));
-  newEntry.year   = 0b00000000;
-  newEntry.score  = 0b00000000;
-  memset(newEntry.name, 0, 45*sizeof(char));
-  
-  newEntry.author = (char*)malloc(45*sizeof(char));
-  memset(newEntry.author, 0, 45*sizeof(char)); 
+  BookEntry newEntry = GenBookEntry();
+  #define ENTRY_GROUP newEntry.score
   //FIRST THE NAME
   while(current != NULL) {
     //OPTIONS ENTER
@@ -158,9 +148,7 @@ static void AddCustomCommand(const CommandList* commandList) {
   }
   if(strlen(newEntry.name) == 0) {
     free(newEntry.name);
-    if(typePage & BOOK_PAGE) {
-      free(newEntry.author);
-    }
+    free(newEntry.author);
     //ERROR HANDLING
     return;
   }
@@ -197,6 +185,20 @@ static void AddCustomCommand(const CommandList* commandList) {
       }
       else if (strcmp(NEXT->argument, "READING") == 0) {
         newEntry.data |= READING;
+      }
+    }
+    else if (strcmp(current->argument, "-m") == 0) {
+      if (strcmp(NEXT->argument, "EVENT") == 0) {
+        newEntry.data |= EVENT;
+      } 
+      else if (strcmp(NEXT->argument, "RESEARCH") == 0) {
+        newEntry.data |= RESEARCH;
+      }
+      else if (strcmp(NEXT->argument, "NOTE") == 0) {
+        newEntry.data |= NOTE;
+      }
+      else if (strcmp(NEXT->argument, "DATE") == 0) {
+        newEntry.data |= DATE;
       }
     }
     else if (strcmp(current->argument, "-s") == 0 && typePage & BOOK_PAGE) {
@@ -258,7 +260,88 @@ static void AddCustomCommand(const CommandList* commandList) {
     fprintf(writeCustomFile, "%s\n", newEntry.author);
   } 
   else {
-    fprintf(writeCustomFile, "%d %d %s\n", newEntry.data, newEntry.year, newEntry.name);
+    fprintf(writeCustomFile, "%d %d %d %s\n", newEntry.data, newEntry.year, ENTRY_GROUP, newEntry.name);
   }
   fclose(writeCustomFile);
+}
+
+static void RemoveCustomEntry(FILE* writeFile, BookEntry entry, int currentLine, AVLNode* deleteLineTree, unsigned char type) {
+  if( !InAVLTree(deleteLineTree, currentLine) ) {
+    fprintf(writeFile, "%d %d %d%s\n", entry.data, entry.year, entry.score, entry.name);
+    if(type == BOOK_PAGE) {
+      fprintf(writeFile, "%s\n", entry.author);
+    }
+  }
+}
+
+static void CompleteCustomEntry(FILE* writeFile, BookEntry entry, int currentLine, AVLNode* deleteLineTree, unsigned char type) {
+  if( InAVLTree(deleteLineTree, currentLine) ) {
+    entry.data |= COMPLETED; 
+  }
+  fprintf(writeFile, "%d %d %d%s\n", entry.data, entry.year, entry.score, entry.name);
+  if(type == BOOK_PAGE) {
+    fprintf(writeFile, "%s\n", entry.author);
+  }
+}
+
+static void ClearCustomEntry(FILE* writeFile, BookEntry entry, int currentLine, AVLNode* deleteLineTree, unsigned char type) {
+  if( InAVLTree(deleteLineTree, currentLine) ) {
+    for (int k = 12; k < 15; k++) {
+      entry.data = CLEAR_BIT(entry.data, k);
+    }
+  }
+  fprintf(writeFile, "%d %d %d%s\n", entry.data, entry.year, entry.score, entry.name);
+  if(type == BOOK_PAGE) {
+    fprintf(writeFile, "%s\n", entry.author);
+  }
+}
+
+static void ReadingCustomEntry(FILE* writeFile, BookEntry entry, int currentLine, AVLNode* deleteLineTree, unsigned char type) {
+  if(type != BOOK_PAGE) {
+    fprintf(writeFile, "%d %d %d%s\n", entry.data, entry.year, entry.score, entry.name);
+    return;
+  }
+  if( InAVLTree(deleteLineTree, currentLine) ) {
+    entry.data |= READING; 
+  }
+  fprintf(writeFile, "%d %d %d%s\n", entry.data, entry.year, entry.score, entry.name);
+  fprintf(writeFile, "%s\n", entry.author);
+}
+
+static void CustomEntryMap(const CommandList* commandList, void (*EntryOperation)(FILE*, BookEntry, int, AVLNode*, unsigned char)) {
+  CommandBlock* current = commandList->head->next;
+  FILE *readFile, *tempFile;
+  BookEntry entry = GenBookEntry();
+  AVLNode* changeTreeLines = NULL;
+  while(current != NULL) {
+    InsertToAVL(&changeTreeLines, atoi(current->argument));
+    current = current->next;
+  }
+  
+  #define CUSTOM_FILENAME      *(commandList->filepath)
+  #define CUSTOM_TEMP_FILENAME "temp_entries.txt"
+  readFile = fopen(CUSTOM_FILENAME, "r");
+  unsigned char type;
+  fscanf(readFile, "%hhd\n", &type);
+  tempFile = fopen(CUSTOM_TEMP_FILENAME, "w");
+  fprintf(tempFile, "%hhd\n", type);
+
+  #define CUSTOM_ENTRY_SCAN fscanf(readFile, "%hd%hhd%hhd%[^\n]s", &entry.data, &entry.year, &entry.score, entry.name)
+  int currentLine = 1;
+  while (CUSTOM_ENTRY_SCAN != EOF) {
+    if (type == BOOK_PAGE) {
+      fgetc(readFile);
+      fscanf(readFile, "%[^\n]s", entry.author);
+    }
+    EntryOperation(tempFile, entry, currentLine, changeTreeLines, type);
+    currentLine++;
+  } 
+  
+  fclose(readFile);
+  fclose(tempFile);
+  remove(CUSTOM_FILENAME);
+  rename(CUSTOM_TEMP_FILENAME, CUSTOM_FILENAME);
+  DeleteAVLTree(changeTreeLines);
+  free(entry.name);
+  free(entry.author);
 }

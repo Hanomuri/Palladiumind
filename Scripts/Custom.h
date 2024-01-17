@@ -5,5 +5,7 @@ typedef struct CustomPage {
   unsigned char     sectionType;
 } CustomPage;
 
+CustomPage GenCustomPage();
 void ReadCustomData();
 void ReadCustomPage(const char* filepath);
+void BookDisplayBoard(const char* filepath);

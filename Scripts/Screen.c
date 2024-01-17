@@ -10,12 +10,22 @@
 
 #include "Mind.h"
 #include "Screen.h"
+#include "Custom.h"
 
-void CursorToTheBottom(){
-  struct winsize window;
-  ioctl(STDOUT_FILENO, TIOCGWINSZ, &window);
+#define WIDTH   terminal.ws_col
+#define HEIGHT  terminal.ws_row
 
-  printf("\033[%d;0H\33[K", window.ws_row);
+void CursorToTheBottom() {
+  struct winsize terminal;
+  ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal);
+
+  printf("\033[%d;0H\33[K", HEIGHT);
+}
+
+unsigned char GetTerminalWidth() {
+  struct winsize terminal;
+  ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal);
+  return WIDTH;
 }
 
 void PrintCurrentTime(unsigned char width) {
@@ -44,12 +54,25 @@ void PrintCurrentTime(unsigned char width) {
   printf("\33[0;%dH%s\n", width-4, timeBuffer);
 }
 
+void FormatData(const unsigned char section, const char* filepath) {
+  printf("\033[3;0H\33[J");
+  if (section & HOME) {
+    ReadEntriesData();
+  } 
+  else if (section & CUSTOM) {
+    ReadCustomData();
+  }
+  else if (section & ENTRY) {
+    ReadCustomPage(filepath);
+  }
+  CursorToTheBottom();
+}
+
 void FormatScreen(const unsigned char section){
   printf("\033[H\33[K");
 
   struct winsize terminal;
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal);
-  #define WIDTH terminal.ws_col
 
   printf(COLOR_BOLD "\033[1FPalladiumind" ATTR_OFF);
   
@@ -87,4 +110,33 @@ void FormatScreen(const unsigned char section){
   printf(ATTR_OFF);
 
   fflush(stdout);
+}
+
+void* DisplayCheck(void* args) {
+  unsigned char *section = args;
+  struct winsize terminal;
+  short width   = 0;
+  short height  = 0;
+
+  time_t now = time(NULL);
+  struct tm *now_tm = localtime(&now);
+  int minutes = now_tm->tm_min;
+
+  while (1){
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal);
+    time_t now = time(NULL);
+    now_tm = localtime(&now);
+    if(width != WIDTH || height != HEIGHT) {
+      width   = WIDTH;
+      height  = HEIGHT;
+      FormatScreen(*section);
+      CursorToTheBottom();
+    }
+    if (minutes != now_tm->tm_min) {
+      minutes = now_tm->tm_min;
+      PrintCurrentTime(width);
+      CursorToTheBottom();
+    }
+  }
+  return NULL;
 }

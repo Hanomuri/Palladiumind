@@ -23,7 +23,7 @@
     #endif
     #ifndef _AVL
         #define _AVL
-        #include "../AVLTree.h"
+        #include "../DataStructures/AVLTree.h"
     #endif
     #ifndef _COMMAND_ARENA
         #define _COMMAND_ARENA
@@ -45,9 +45,6 @@
         #define ENTER_KEY         '\n'
     #endif
 #endif
-
-
-
 
 static void InitCommandList(CommandList* commandList, const size_t totalSize) {
   commandList->totalSize  = totalSize;

@@ -5,6 +5,8 @@
 #include "CommandMode/CommandMind.h"
 #include "Screen.h"
 
+#define SHOW_CURSOR printf("\e[?25h")
+#define INVISIBLE_CURSOR printf("\e[?25l")
 
 static void CallCommand(const CommandList* commandList, unsigned char* type) {
   CommandBlock* commandHead = commandList->head;
@@ -26,16 +28,35 @@ static void CallCommand(const CommandList* commandList, unsigned char* type) {
     else if (strcmp(commandHead->argument, "DISCARD") == 0) {
       EntryMap(commandList, DiscardEntry);
     }
+    FormatData(*type, *commandList->filepath);
   }
   else if (*type & ENTRY) {
     if (strcmp(commandHead->argument, "ADD") == 0) {
       AddCustomCommand(commandList);
+      FormatData(*type, *(commandList->filepath));
     } 
     else if (strcmp(commandHead->argument, "REMOVE") == 0) {
-      EntryMap(commandList, RemoveEntry);
+      CustomEntryMap(commandList, RemoveCustomEntry);
+      FormatData(*type, *(commandList->filepath));
     } 
     else if (strcmp(commandHead->argument, "COMPLETE") == 0) {
-      EntryMap(commandList, CompleteEntry);
+      CustomEntryMap(commandList, CompleteCustomEntry);
+      FormatData(*type, *(commandList->filepath));
+    }
+    else if (strcmp(commandHead->argument, "READING") == 0) {
+      CustomEntryMap(commandList, ReadingCustomEntry);
+      FormatData(*type, *(commandList->filepath));
+    }
+    else if (strcmp(commandHead->argument, "TO_READ") == 0 || strcmp(commandHead->argument, "TOREAD") == 0) {
+      CustomEntryMap(commandList, ClearCustomEntry);
+      FormatData(*type, *(commandList->filepath));
+    }
+    else if (strcmp(commandHead->argument, "DISPLAY") == 0) {
+      if(commandHead->next == NULL){
+        return;
+      } else if (strcmp(commandHead->next->argument, "BOARD") == 0) {
+        BookDisplayBoard(*commandList->filepath);
+      }
     }
   } 
   else if (*type & FUTURE_LOG) {
@@ -55,6 +76,7 @@ static void CallCommand(const CommandList* commandList, unsigned char* type) {
     else if (strcmp(commandHead->argument, "ENTER") == 0 && (commandHead->next != NULL)) {
       EnterCustomPage(commandList, atoi(commandHead->next->argument), type);
     }
+    FormatData(*type, *commandList->filepath);
   }
 }
 
@@ -64,7 +86,7 @@ void CommandMode(unsigned char* section, char* filepath) {
   commandList.filepath = &filepath;
 
   char c;
-
+  SHOW_CURSOR;
   while(1){
     c = getc(stdin);
     
@@ -84,5 +106,6 @@ void CommandMode(unsigned char* section, char* filepath) {
     }
   }
   CursorToTheBottom();
+  INVISIBLE_CURSOR;
   DeleteCommandList(&commandList);
 }

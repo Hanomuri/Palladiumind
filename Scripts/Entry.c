@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <time.h> 
 
@@ -54,7 +55,7 @@ void PrintDateEntry(short entryData, unsigned char yearData) {
     printf(" %d", 2000 + entryData);
 }
 
-static void PrintEntry(const struct Entry* entry) {
+void PrintEntry(const struct Entry* entry) {
   unsigned char markBuffer = 0;
   for(unsigned char k = 12; k < 15; k++) {
     if(BIT_VALUE(entry->data, k)) markBuffer += pow(2, k-12);
@@ -104,7 +105,7 @@ void ReadEntriesData() {
 
   Entry entry;
   entry.name = malloc(sizeof(char)*45);
-  #define ENTRY_SCAN fscanf(readEntriesFile, "%hd%hhd %[^\n]s", &entry.data, &entry.year, entry.name)
+  #define ENTRY_SCAN fscanf(readEntriesFile, "%hd%hhd%hhd %[^\n]s", &entry.data, &entry.year, &entry.group, entry.name)
   for(int currentEntry = 1; ENTRY_SCAN != EOF; currentEntry++) {
     printf("%d ", currentEntry);
     PrintEntry(&entry);
@@ -114,3 +115,12 @@ void ReadEntriesData() {
   free(entry.name);
 }
 
+Entry GenEntry() {
+  Entry newEntry;
+  newEntry.data   = 0b0000000000000000;
+  newEntry.name   = (char*)malloc(45*sizeof(char));
+  newEntry.year   = 0b00000000;
+  newEntry.group  = 0b00000000;
+  memset(newEntry.name, 0, 45*sizeof(char));
+  return newEntry;
+}
