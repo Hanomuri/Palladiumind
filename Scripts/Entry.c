@@ -79,7 +79,7 @@ void PrintEntry(const struct Entry* entry) {
     printf("□");
   }
   printf(" ");
-  if(entry->data & DISCARTED) {
+  if(entry->data & DISCARDED) {
     printf(TEXT_STRIKE);
   }
   printf("%s", entry->name);

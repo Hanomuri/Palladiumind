@@ -5,7 +5,7 @@
 16 Completed
 15-13 Mark
 12 Important
-11 Discarted
+11 DISCARDED
 10 Have date
 9-6 Month
 5-1 Day
@@ -37,7 +37,7 @@ char bits is 2000+year
   #define NOTE              0x3000
   #define DATE              0x4000
   #define IMPORTANT         0x800
-  #define DISCARTED         0x400
+  #define DISCARDED         0x400
   #define HAVE_DATE         0x200
 #endif
 
