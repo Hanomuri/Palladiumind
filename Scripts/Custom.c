@@ -13,7 +13,7 @@
 #define EVENT_MARK        1
 #define RESEARCH_MARK     2
 #define NOTE_MARK         3
-#define WHISHLIST_MARK    4
+#define WISHLIST_MARK    4
 #define READING_MARK      5
 
 #define BIT_VALUE(X, Y) (((X) >> (Y)) & 0x1)
@@ -56,7 +56,7 @@ static void PrintBookPageEntry(const struct BookEntry* bookEntry, const u_short 
     if (markBuffer == READING_MARK) {
       printf("➳"); //⛨
     } 
-    else if (markBuffer == WHISHLIST_MARK) {
+    else if (markBuffer == WISHLIST_MARK) {
       printf("★");
     } 
     else if (markBuffer == NOTE_MARK) {

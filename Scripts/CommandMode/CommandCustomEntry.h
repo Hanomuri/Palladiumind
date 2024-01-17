@@ -31,7 +31,7 @@
     #include "../Custom.h"
 #endif
 
-#define WHISHLIST         0x4000
+#define WISHLIST         0x4000
 #define READING           0x5000
 
 #define BOOK_PAGE         0x1
@@ -154,7 +154,6 @@ static void AddCustomCommand(const CommandList* commandList) {
   }
   while(current != NULL) {
     #define NEXT current->next
-    //MIGATION IS ANOTHER OPTION
     if(strcmp(current->argument, "-c") == 0) {
       newEntry.data |= COMPLETED;
     } 
@@ -181,7 +180,7 @@ static void AddCustomCommand(const CommandList* commandList) {
         newEntry.data |= NOTE;
       }
       else if (strcmp(NEXT->argument, "WISHLIST") == 0) {
-        newEntry.data |= WHISHLIST;
+        newEntry.data |= WISHLIST;
       }
       else if (strcmp(NEXT->argument, "READING") == 0) {
         newEntry.data |= READING;
