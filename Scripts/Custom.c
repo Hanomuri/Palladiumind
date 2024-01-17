@@ -74,7 +74,7 @@ static void PrintBookPageEntry(const struct BookEntry* bookEntry, const u_short 
   }
 
   printf(" ");
-  if(bookEntry->data & DISCARTED) {
+  if(bookEntry->data & DISCARDED) {
     printf(TEXT_STRIKE);
   }
   printf("%s - %s", bookEntry->name, bookEntry->author);

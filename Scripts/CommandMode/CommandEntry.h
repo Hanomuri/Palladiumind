@@ -64,8 +64,8 @@ static void AddEntryCommand(const CommandList* commandList) {
       newEntry.data |= (atoi(NEXT->next->argument));
       newEntry.year |= (atoi(NEXT->next->next->argument) -2000);
     }
-    else if (strcmp(current->argument, "-DISCARTED") == 0) {
-      newEntry.data |= DISCARTED;
+    else if (strcmp(current->argument, "-DISCARDED") == 0) {
+      newEntry.data |= DISCARDED;
     }
     else if (strcmp(current->argument, "-m") == 0) {
       if (strcmp(NEXT->argument, "EVENT") == 0) {
@@ -110,7 +110,7 @@ static void CompleteEntry(FILE* writeFile, Entry entry, int currentLine, AVLNode
 static void DiscardEntry(FILE* writeFile, Entry entry, int currentLine, AVLNode* completeLineTree) {
   #define COMPLETE_WRITE fprintf(writeFile, "%d %d%s\n", entry.data, entry.year, entry.name);
   if( InAVLTree(completeLineTree, currentLine) ) {
-    entry.data |= DISCARTED;
+    entry.data |= DISCARDED;
   }
   COMPLETE_WRITE
   currentLine++;

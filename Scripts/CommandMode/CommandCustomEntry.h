@@ -167,8 +167,8 @@ static void AddCustomCommand(const CommandList* commandList) {
       newEntry.data |= (atoi(NEXT->next->argument));
       newEntry.year |= (atoi(NEXT->next->next->argument) -2000);
     } 
-    else if (strcmp(current->argument, "-DISCARTED") == 0) {
-      newEntry.data |= DISCARTED;
+    else if (strcmp(current->argument, "-DISCARDED") == 0) {
+      newEntry.data |= DISCARDED;
     } 
     else if (strcmp(current->argument, "-m") == 0 && typePage & BOOK_PAGE) {
       if (strcmp(NEXT->argument, "EVENT") == 0) {
