@@ -1,3 +1,0 @@
-ADD 3
-Heart 5
-Sketch 6
