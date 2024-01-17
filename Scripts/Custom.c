@@ -49,7 +49,10 @@ static void PrintBookPageEntry(const struct BookEntry* bookEntry, const u_short 
   for(unsigned char k = 12; k < 15; k++) {
     if(BIT_VALUE(bookEntry->data, k)) markBuffer += pow(2, k-12);
   }
-  if(type & BOOK_PAGE) {
+  if (bookEntry->data & DISCARDED) {
+    //TWENTY ONEEE
+  }
+  else if(type & BOOK_PAGE) {
     if (markBuffer == READING_MARK) {
       printf("➳"); //⛨
     } 
@@ -73,9 +76,11 @@ static void PrintBookPageEntry(const struct BookEntry* bookEntry, const u_short 
     }
   }
 
-  printf(" ");
   if(bookEntry->data & DISCARDED) {
     printf(TEXT_STRIKE);
+  } 
+  else {
+    printf(" ");
   }
   printf("%s - %s", bookEntry->name, bookEntry->author);
   printf(ATTR_OFF);
@@ -125,6 +130,7 @@ void ReadCustomPage(const char* filepath) {
     for(int currentEntry = 1; CUSTOM_ENTRY_SCAN != EOF; currentEntry++) {
       fgetc(readCustomEntriesFile);
       fscanf(readCustomEntriesFile, "%[^\n]s", bookEntry.author);
+      printf("%d ", currentEntry);
       PrintBookPageEntry(&bookEntry, type);
     }
     free(bookEntry.name);

@@ -60,7 +60,10 @@ void PrintEntry(const struct Entry* entry) {
   for(unsigned char k = 12; k < 15; k++) {
     if(BIT_VALUE(entry->data, k)) markBuffer += pow(2, k-12);
   }
-  if (markBuffer == DATE_MARK) {
+  if (entry->data & DISCARDED) {
+    //TWENTY ONEEE
+  }
+  else if (markBuffer == DATE_MARK) {
     printf("☕");
   } 
   else if (markBuffer == NOTE_MARK) {
@@ -78,9 +81,12 @@ void PrintEntry(const struct Entry* entry) {
   else {
     printf("□");
   }
-  printf(" ");
+  
   if(entry->data & DISCARDED) {
     printf(TEXT_STRIKE);
+  }
+  else {
+    printf(" ");
   }
   printf("%s", entry->name);
   printf(ATTR_OFF);
