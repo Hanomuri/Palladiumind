@@ -8,4 +8,4 @@ typedef struct CustomPage {
 CustomPage GenCustomPage();
 void ReadCustomData();
 void ReadCustomPage(const char* filepath);
-void BookDisplayBoard(const char* filepath);
+void DisplayBoard(const char* filepath);

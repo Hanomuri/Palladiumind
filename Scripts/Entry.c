@@ -85,7 +85,7 @@ void PrintEntry(const struct Entry* entry) {
   if(entry->data & DISCARDED) {
     printf(TEXT_STRIKE);
   }
-  else {
+  else if (markBuffer != DATE_MARK){
     printf(" ");
   }
   printf("%s", entry->name);

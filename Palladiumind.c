@@ -8,8 +8,10 @@
 #include <termios.h>
 #include <unistd.h>
 
-
-#include "Scripts/Mind.h"
+#ifndef _PALLADIUM_MIND
+  #define _PALLADIUM_MIND
+  #include "Scripts/Mind.h"
+#endif
 #include "Scripts/Screen.h"
 #include "Scripts/CommandMode.h"
 #include "Scripts/Custom.h"
@@ -20,7 +22,6 @@
 #define PALLADIUM_VERSION     0.15
 
 #define EXIT_PALLADIUM_SCREEN printf("\33[?1049l")
-#define SHOW_CURSOR printf("\e[?25h")
 #define INVISIBLE_CURSOR printf("\e[?25l")
 //WITH CURSORTOTHEBOTTOm
 void InitPalladium(){
@@ -43,16 +44,17 @@ void InitPalladium(){
 signed main(){
   InitPalladium();
 
-  unsigned char section = 0;
-  char* filepath;
-  filepath = malloc(60*sizeof(char));
-  memset(filepath, 0, 60*sizeof(char));
-
-  section |= HOME;
+  Mind mind;
+  mind.section         = 0;
+  mind.section         |= HOME;
+  mind.heightInCommand = 0;
+  mind.currentCollum   = NULL;
+  mind.filepath        = malloc(60*sizeof(char));
+  memset(mind.filepath, 0, 60*sizeof(char));
   
   pthread_t checkThread;
-  FormatData(section, filepath);
-  pthread_create(&checkThread, NULL, DisplayCheck, &section);
+  FormatData(&mind);
+  pthread_create(&checkThread, NULL, DisplayCheck, &mind);
 
   char c;
 
@@ -61,13 +63,13 @@ signed main(){
 
     if(c == COLON) {
       printf("%c", COLON);
-      CommandMode(&section, filepath);
+      CommandMode(&mind);
     }
-    else if (c == ESC_KEY && section & ENTRY) {
-      section = section<<1;
-      memset(filepath, 0, 60*sizeof(char));
-      FormatScreen(section);
-      FormatData(section, filepath);
+    else if (c == ESC_KEY && (mind.section & ENTRY || mind.section & BOARD)) {
+      mind.section = CUSTOM;
+      memset(mind.filepath, 0, 60*sizeof(char));
+      FormatScreen(&mind);
+      FormatData(&mind);
     } 
     else if (c == ESC_KEY) {
       break;

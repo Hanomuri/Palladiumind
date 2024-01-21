@@ -2,13 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-//FOR TERMINAL SIZE
+
 #include <sys/ioctl.h>
 #include <unistd.h>
 
 #include <time.h>
 
-#include "Mind.h"
 #include "Screen.h"
 #include "Custom.h"
 
@@ -20,6 +19,18 @@ void CursorToTheBottom() {
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal);
 
   printf("\033[%d;0H\33[K", HEIGHT);
+}
+
+static void CursorCommandToTheBottom(size_t* width) {
+  struct winsize terminal;
+  ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal);
+
+  if (width == NULL) {
+    printf("\033[%d;0H", HEIGHT);
+  }
+  else {
+    printf("\033[%d;%ldH", HEIGHT, *width+2);
+  }
 }
 
 unsigned char GetTerminalWidth() {
@@ -54,21 +65,30 @@ void PrintCurrentTime(unsigned char width) {
   printf("\33[0;%dH%s\n", width-4, timeBuffer);
 }
 
-void FormatData(const unsigned char section, const char* filepath) {
-  printf("\033[3;0H\33[J");
-  if (section & HOME) {
+void FormatData(const Mind* mind) {
+  struct winsize terminal;
+  ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal);
+
+  for(int currentRow = 3; currentRow <= HEIGHT-mind->heightInCommand; currentRow++) {
+    printf("\033[%d;0H\33[K", currentRow);
+  }
+  printf("\033[3;0H");
+  if (mind->section & HOME) {
     ReadEntriesData();
   } 
-  else if (section & CUSTOM) {
+  else if (mind->section & CUSTOM) {
     ReadCustomData();
   }
-  else if (section & ENTRY) {
-    ReadCustomPage(filepath);
+  else if (mind->section & ENTRY) {
+    ReadCustomPage(mind->filepath);
   }
-  CursorToTheBottom();
+  else if (mind->section & BOARD) {
+    DisplayBoard(mind->filepath);
+  }
+  CursorCommandToTheBottom(mind->currentCollum);
 }
 
-void FormatScreen(const unsigned char section){
+void FormatScreen(const Mind* mind){
   printf("\033[H\33[K");
 
   struct winsize terminal;
@@ -95,7 +115,7 @@ void FormatScreen(const unsigned char section){
         printf(" ");
       }
       currentSection = pow(2, 4-i);
-      if(!(currentSection<<3 & section)) {
+      if(!(currentSection<<3 & mind->section)) {
         printf(TEXT_DIM);
       }
       printf("%s", pagesName[i]);
@@ -113,7 +133,7 @@ void FormatScreen(const unsigned char section){
 }
 
 void* DisplayCheck(void* args) {
-  unsigned char *section = args;
+  Mind* mind = (Mind*)args;
   struct winsize terminal;
   short width   = 0;
   short height  = 0;
@@ -129,13 +149,14 @@ void* DisplayCheck(void* args) {
     if(width != WIDTH || height != HEIGHT) {
       width   = WIDTH;
       height  = HEIGHT;
-      FormatScreen(*section);
-      CursorToTheBottom();
+      FormatScreen(mind);
+      FormatData(mind);
+      CursorCommandToTheBottom(mind->currentCollum);
     }
     if (minutes != now_tm->tm_min) {
       minutes = now_tm->tm_min;
       PrintCurrentTime(width);
-      CursorToTheBottom();
+      CursorCommandToTheBottom(mind->currentCollum);
     }
   }
   return NULL;

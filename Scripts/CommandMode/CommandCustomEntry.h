@@ -100,7 +100,7 @@ static void AddCustomPage(const CommandList* commandList) {
 }
 
 
-static void EnterCustomPage (const CommandList* commandList, size_t enterPage, unsigned char* type) {
+static void EnterCustomPage (const CommandList* commandList, size_t enterPage, Mind* mind) {
   CustomPage readPage = GenCustomPage();
 
   FILE* readCustomFile;
@@ -110,10 +110,10 @@ static void EnterCustomPage (const CommandList* commandList, size_t enterPage, u
   int currentPage = 1;
   while (CUSTOM_SCAN != EOF) {
     if(currentPage == enterPage) {
-      strcpy(*(commandList->filepath), "Custom/");
-      strcat(*(commandList->filepath), readPage.name);
-      strcat(*(commandList->filepath), ".txt");
-      *type = ENTRY;
+      strcpy(mind->filepath, "Custom/");
+      strcat(mind->filepath, readPage.name);
+      strcat(mind->filepath, ".txt");
+      mind->section = ENTRY;
       break;
     }
     currentPage++;
@@ -122,11 +122,11 @@ static void EnterCustomPage (const CommandList* commandList, size_t enterPage, u
   free(readPage.name);
   fclose(readCustomFile);
 }
-static void AddCustomCommand(const CommandList* commandList) {
+static void AddCustomCommand(const CommandList* commandList, char** filepath) {
   CommandBlock* current = commandList->head->next;
 
   unsigned char typePage;
-  FILE* readCustomEntriesFile = fopen(*(commandList->filepath), "r");
+  FILE* readCustomEntriesFile = fopen(*filepath, "r");
 
   fscanf(readCustomEntriesFile, "%hhu", &typePage);
   fclose(readCustomEntriesFile);
@@ -253,7 +253,7 @@ static void AddCustomCommand(const CommandList* commandList) {
     }
   }
 
-  FILE* writeCustomFile = fopen(*(commandList->filepath), "a");
+  FILE* writeCustomFile = fopen(*filepath, "a");
   if(typePage & BOOK_PAGE) {
     fprintf(writeCustomFile, "%d %d %d %s\n", newEntry.data, newEntry.year, newEntry.score, newEntry.name);
     fprintf(writeCustomFile, "%s\n", newEntry.author);
@@ -307,7 +307,7 @@ static void ReadingCustomEntry(FILE* writeFile, BookEntry entry, int currentLine
   fprintf(writeFile, "%s\n", entry.author);
 }
 
-static void CustomEntryMap(const CommandList* commandList, void (*EntryOperation)(FILE*, BookEntry, int, AVLNode*, unsigned char)) {
+static void CustomEntryMap(const CommandList* commandList, void (*EntryOperation)(FILE*, BookEntry, int, AVLNode*, unsigned char), char** filepath) {
   CommandBlock* current = commandList->head->next;
   FILE *readFile, *tempFile;
   BookEntry entry = GenBookEntry();
@@ -317,7 +317,7 @@ static void CustomEntryMap(const CommandList* commandList, void (*EntryOperation
     current = current->next;
   }
   
-  #define CUSTOM_FILENAME      *(commandList->filepath)
+  #define CUSTOM_FILENAME      *filepath
   #define CUSTOM_TEMP_FILENAME "temp_entries.txt"
   readFile = fopen(CUSTOM_FILENAME, "r");
   unsigned char type;
