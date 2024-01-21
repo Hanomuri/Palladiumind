@@ -1,4 +1,7 @@
-
+#ifndef _STDBOOL
+  #define _STDBOOL
+  #include <stdbool.h>
+#endif
 
 typedef struct AVLNode { 
   int                   data;

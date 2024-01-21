@@ -1,4 +1,11 @@
-#include <stddef.h>
+#ifndef _STDDEF
+  #define _STDDEF
+  #include <stddef.h>
+#endif
+#ifndef _PALLADIUM_MIND
+  #define _PALLADIUM_MIND
+  #include "Mind.h"
+#endif
 
 typedef struct CommandArena {
   unsigned char*    arenaBuffer;
@@ -13,7 +20,6 @@ typedef struct CommandBlock {
 } CommandBlock;
 
 typedef struct CommandList {
-  char**            filepath;
   unsigned char*    masterMind;         //CONTAIN ALL CHAR
   size_t            totalSize;
   size_t            currSize;
@@ -22,4 +28,4 @@ typedef struct CommandList {
   CommandBlock*     tail;
 } CommandList;
 
-void CommandMode(unsigned char* section, char* filepath);
+void CommandMode(Mind* mind);

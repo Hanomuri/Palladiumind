@@ -11,6 +11,11 @@
 5-1 Day
 char bits is 2000+year 
 */
+#ifndef _STDDEF
+  #define _STDDEF
+  #include <stddef.h>
+#endif
+
 #ifndef _SECTIONS
   #define _SECTIONS
   #define HOME                  0x80
@@ -18,6 +23,7 @@ char bits is 2000+year
   #define MONTLY                0x20
   #define CUSTOM                0x10
   #define ENTRY                 0x8
+  #define BOARD                 0x4
 #endif
 
 #ifndef _TEXT_MOD
@@ -43,6 +49,13 @@ char bits is 2000+year
 
 #define BIT_VALUE(X, Y) (((X) >> (Y)) & 0x1)
 #define CLEAR_BIT(x, n) (n & (~(1 << (n - 1))))
+
+typedef struct Mind {
+  unsigned char       section;
+  char*               filepath;
+  short               heightInCommand;
+  size_t*             currentCollum;
+}Mind;
 
 typedef struct Entry {
   short               data;

@@ -21,9 +21,9 @@
 
 static void PrintCustomSection(const struct CustomPage* customPage) {
   if(customPage->sectionType & BOOK_PAGE) {
-    printf("🕮");
+    printf("🕮 ");
   } else {
-    printf("☑");
+    printf("☑ ");
   }
   printf("%s\n", customPage->name);
 }
@@ -121,9 +121,9 @@ void ReadCustomData() {
 
 void ReadCustomPage(const char* filepath) {
   FILE* readCustomEntriesFile = fopen(filepath, "r"); 
-  u_short type;
+  unsigned char type;
   fscanf(readCustomEntriesFile, "%hhd\n", &type);
-
+  
   if(type & BOOK_PAGE) {
     BookEntry bookEntry = GenBookEntry();
     #define CUSTOM_ENTRY_SCAN fscanf(readCustomEntriesFile, "%hd%hhd%hhd %[^\n]s", &bookEntry.data, &bookEntry.year, &bookEntry.score, bookEntry.name)
@@ -148,98 +148,94 @@ void ReadCustomPage(const char* filepath) {
   fclose(readCustomEntriesFile);
 }
 
-void BookDisplayBoard(const char* filepath) {
+void DisplayBoard(const char* filepath) {
   FILE* readBookFile = fopen(filepath, "r"); 
   unsigned char type;
   fscanf(readBookFile, "%hhd\n", &type);
 
-  if(!(type & BOOK_PAGE)) {
-    return;
-  }
   unsigned char TerminalWidth = GetTerminalWidth();
-  if (TerminalWidth < 93) {
+  if (TerminalWidth < 99) {
     return;
   }
   TerminalWidth /= 3;
-  BookList completedBooks;
-  BookList readingBooks;
-  BookList toReadBooks;
-  InitBookList(&completedBooks);
-  InitBookList(&readingBooks);
-  InitBookList(&toReadBooks);
+  BoardList completedList;
+  BoardList doingList;
+  BoardList toDoList;
+  InitBoardList(&completedList);
+  InitBoardList(&doingList);
+  InitBoardList(&toDoList);
   unsigned char markBuffer = 0;
-  BookEntry bookEntry = GenBookEntry();
-  #define BOOK_SCAN fscanf(readBookFile, "%hd%hhd%hhd %[^\n]s", &bookEntry.data, &bookEntry.year, &bookEntry.score, bookEntry.name)
-  for(int currentEntry = 1; BOOK_SCAN != EOF; currentEntry++) {
-    fgetc(readBookFile);
-    fscanf(readBookFile, "%[^\n]s", bookEntry.author);
+  BookEntry entry = GenBookEntry();
+  #define BOARD_SCAN fscanf(readBookFile, "%hd%hhd%hhd %[^\n]s", &entry.data, &entry.year, &entry.score, entry.name)
+  for(int currentEntry = 1; BOARD_SCAN != EOF; currentEntry++) {
+    if (type == BOOK_PAGE) {
+      fgetc(readBookFile);
+      fscanf(readBookFile, "%[^\n]s", entry.author);
+    }
     for(unsigned char k = 12; k < 15; k++) {
-      if(BIT_VALUE(bookEntry.data, k)) markBuffer += pow(2, k-12);
+      if(BIT_VALUE(entry.data, k)) markBuffer += pow(2, k-12);
     }
     
+    //TO DO WITH OTHERS
     if (markBuffer == READING_MARK) {
-      InsertBookList(&readingBooks, bookEntry);
+      InsertBoardList(&doingList, entry, currentEntry);
     }
-    else if (bookEntry.data & COMPLETED && markBuffer == 0) {
-      InsertBookList(&completedBooks, bookEntry);
+    else if (entry.data & COMPLETED && markBuffer == 0) {
+      InsertBoardList(&completedList, entry, currentEntry);
     } 
     else if (markBuffer == 0){
-      InsertBookList(&toReadBooks, bookEntry);
+      InsertBoardList(&toDoList, entry, currentEntry);
     }
     markBuffer = 0;
   }
 
   printf("\033[3;0H\33[J");
-
-  printf("Completed");
-  for(int k = strlen("completed"); k < TerminalWidth; k++){
-    printf(" ");
+  
+  if (type == BOOK_PAGE) {
+    printf("Readed");
+    for(int k = strlen("Readed"); k < TerminalWidth; k++){
+      printf(" ");
+    }
+    printf("Reading");
+    for(int k = strlen("Reading"); k < TerminalWidth; k++){
+      printf(" ");
+    }
+    printf("To Read\n");
   }
-  printf("Reading");
-  for(int k = strlen("Reading"); k < TerminalWidth; k++){
-    printf(" ");
+  else {
+    printf("Completed");
+    for(int k = strlen("Completed"); k < TerminalWidth; k++){
+      printf(" ");
+    }
+    printf("Doing");
+    for(int k = strlen("Doing"); k < TerminalWidth; k++){
+      printf(" ");
+    }
+    printf("To Do\n");
   }
-  printf("To Read\n");
-  while (!IsEmpty(&completedBooks) || !IsEmpty(&readingBooks) || !IsEmpty(&toReadBooks)) {
-    if(!IsEmpty(&completedBooks)) {
-      printf("%s", completedBooks.head->bookEntry.name);
-      for(int k = strlen(completedBooks.head->bookEntry.name); k < TerminalWidth; k++){
-        printf(" ");
-      }
-      RemoveBookListHead(&completedBooks);
-    }
-    else {
-      for(int k = 0; k < TerminalWidth; k++){
-        printf(" ");
-      }
-    }
 
-    if(!IsEmpty(&readingBooks)) {
-      printf("%s", readingBooks.head->bookEntry.name);
-      for(int k = strlen(readingBooks.head->bookEntry.name); k < TerminalWidth; k++){
-        printf(" ");
+  BoardList* boardlist[3] = {&completedList, &doingList, & toDoList};
+  #define NUMBER_ENTRY boardlist[currentList]->head->numberEntry
+  while (!IsEmpty(&completedList) || !IsEmpty(&doingList) || !IsEmpty(&toDoList)) {
+    for (int currentList = 0; currentList < 3; currentList++) {
+      if(!IsEmpty(boardlist[currentList])) {
+        printf("%hd %s", NUMBER_ENTRY, boardlist[currentList]->head->entry.name);
+        for(int k = strlen(boardlist[currentList]->head->entry.name)+((NUMBER_ENTRY/10)+2); k < TerminalWidth; k++){
+          printf(" ");
+        }
+        RemoveBoardListHead(boardlist[currentList]);
       }
-      RemoveBookListHead(&readingBooks);
-    }
-    else {
-      for(int k = 0; k < TerminalWidth; k++){
-        printf(" ");
-      }
-    }
-    
-    if(!IsEmpty(&toReadBooks)) {
-      printf("%s\n", toReadBooks.head->bookEntry.name);
-      RemoveBookListHead(&toReadBooks);
-    }
-    else {
-      for(int k = 0; k < TerminalWidth; k++){
-        printf(" ");
+      else {
+        for(int k = 0; k < TerminalWidth; k++){
+          printf(" ");
+        }
       }
     }
+    printf("\n");
   }
   
-  free(bookEntry.name);
-  free(bookEntry.author);
+  free(entry.name);
+  free(entry.author);
   fclose(readBookFile);
 }
 

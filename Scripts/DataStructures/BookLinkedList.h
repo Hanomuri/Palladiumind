@@ -1,24 +1,29 @@
 
 #ifndef _PALLADIUM_MIND
-    #define _PALLADIUM_MIND
-    #include "../Mind.h"
+  #define _PALLADIUM_MIND
+  #include "../Mind.h"
+#endif
+#ifndef _STDDEF
+  #define _STDDEF
+  #include <stddef.h>
 #endif
 
 
-typedef struct BookListNode {
-    BookEntry                      bookEntry;
-    struct BookListNode*           next;
-} BookListNode;
+typedef struct BoardListNode {
+  short                        numberEntry;
+  BookEntry                    entry;           
+  struct BoardListNode*        next;
+} BoardListNode;
 
-typedef struct BookList {
-  size_t                         length;
-  BookListNode*                  head;
-  BookListNode*                  tail;
-} BookList;
+typedef struct BoardList {
+  size_t                       length;
+  BoardListNode*               head;
+  BoardListNode*               tail;
+} BoardList;
 
 
-void InitBookList(BookList* bookList);
-void InsertBookList(BookList* bookList, BookEntry insertEntry);
-void RemoveBookListHead(BookList* bookList);
-void DeleteBookList(BookList* bookList);
-unsigned char IsEmpty(BookList* bookList);
+void InitBoardList(BoardList* boardList);
+void InsertBoardList(BoardList* boardList, BookEntry insertEntry, short currentNumber);
+void RemoveBoardListHead(BoardList* boardList);
+void DeleteBoardList(BoardList* boardList);
+unsigned char IsEmpty(BoardList* boardList);
