@@ -31,10 +31,6 @@ void RemoveBoardListHead(BoardList* boardList) {
     free(boardList->tail->entry.name);
     free(boardList->tail);
     boardList->head = NULL;
-    
-    FILE* a = fopen("SEXO.txt", "a");
-    fprintf(a, "%s\n", "QUE CHUUUCHA");
-    fclose(a);
   } else {
     BoardListNode* auxNode = boardList->head;
     boardList->head = boardList->head->next;
@@ -42,7 +38,6 @@ void RemoveBoardListHead(BoardList* boardList) {
     free(auxNode);
   }
   boardList->length--;
-  
 }
 
 void DeleteBoardList(BoardList* boardList) {

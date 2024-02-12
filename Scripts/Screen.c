@@ -103,9 +103,9 @@ void FormatScreen(const Mind* mind){
   memset(pagesName[3], 0, 10*sizeof(char));
   
   strcpy(pagesName[0], "Home");
-  strcpy(pagesName[1], "FutureLog");
-  strcpy(pagesName[2], "Montly");
-  strcpy(pagesName[3], "Custom");
+  strcpy(pagesName[1], "Marked");
+  strcpy(pagesName[2], "Custom");
+  strcpy(pagesName[3], "Config");
   
   unsigned char currentSection;
 

@@ -56,9 +56,8 @@ static void AddCustomPage(const CommandList* commandList) {
   CommandBlock* current = commandList->head->next;
 
   CustomPage newCustomPage = GenCustomPage();
-  //FIRST THE NAME
+
   while(current != NULL) {
-    //OPTIONS ENTER
     if(current->argument[0] == '-') {
       break;
     }
@@ -70,12 +69,12 @@ static void AddCustomPage(const CommandList* commandList) {
     }
   }
 
-  if(strlen(newCustomPage.name) == 0) {
+  if(strlen(newCustomPage.name) == 0 || strlen(newCustomPage.name) == commandList->currSize-4) {
     free(newCustomPage.name);
     //ERROR HANDLING
     return;
   }
-
+  
   if(strcmp(current->argument, "-BOOKPAGE") == 0) {
     newCustomPage.sectionType |= BOOK_PAGE;
   }
