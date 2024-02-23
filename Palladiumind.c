@@ -23,7 +23,7 @@
 
 #define EXIT_PALLADIUM_SCREEN printf("\33[?1049l")
 #define INVISIBLE_CURSOR printf("\e[?25l")
-//WITH CURSORTOTHEBOTTOm
+
 void InitPalladium(){
   #define ENTER_PALLADIUM_SCREEN printf("\33[?1049h\033[H")
 
@@ -45,11 +45,14 @@ signed main(){
   InitPalladium();
 
   Mind mind;
+  mind.currentNavi     = 0;
+  mind.maximumNavi     = 0;
   mind.section         = 0;
   mind.section         |= HOME;
   mind.heightInCommand = 0;
   mind.currentCollum   = NULL;
   mind.filepath        = malloc(60*sizeof(char));
+  mind.pageName        = malloc(45*sizeof(char));
   memset(mind.filepath, 0, 60*sizeof(char));
   
   pthread_t checkThread;
@@ -57,6 +60,8 @@ signed main(){
   pthread_create(&checkThread, NULL, DisplayCheck, &mind);
 
   char c;
+
+  //printf("\33[0;34m"); BLUE TEXT TO SETTINGS :D
 
   while(true){
     c = getc(stdin);
@@ -77,5 +82,6 @@ signed main(){
   }
 
   EXIT_PALLADIUM_SCREEN;
+
   return 0;
 }

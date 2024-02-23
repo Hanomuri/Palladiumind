@@ -7,5 +7,5 @@ typedef struct CustomPage {
 
 CustomPage GenCustomPage();
 void ReadCustomData();
-void ReadCustomPage(const char* filepath);
+void ReadCustomPage(Mind* mind);
 void DisplayBoard(const char* filepath);

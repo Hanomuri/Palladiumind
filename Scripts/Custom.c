@@ -109,28 +109,36 @@ void ReadCustomData() {
 
   CustomPage customPage = GenCustomPage();
 
+  int currentPage = 0;
+
   #define CUSTOM_PAGE_SCAN fscanf(readCustomFile, "%hhd%[^\n]s", &customPage.sectionType, customPage.name)
-  for(int currentPage = 1; CUSTOM_PAGE_SCAN != EOF; currentPage++) {
-    printf("%d ", currentPage);
+  for(; CUSTOM_PAGE_SCAN != EOF;) {
+    printf("%d ", ++currentPage);
     PrintCustomSection(&customPage);
   }
   
+  if (currentPage == 0) {
+    printf("-EMPTY-\n");
+  }
+
   fclose(readCustomFile);
   free(customPage.name);
 }
 
-void ReadCustomPage(const char* filepath) {
-  FILE* readCustomEntriesFile = fopen(filepath, "r"); 
+void ReadCustomPage(Mind* mind) {
+  FILE* readCustomEntriesFile = fopen(mind->filepath, "r"); 
   unsigned char type;
   fscanf(readCustomEntriesFile, "%hhd\n", &type);
   
+  int currentEntry = 0;
+
   if(type & BOOK_PAGE) {
     BookEntry bookEntry = GenBookEntry();
     #define CUSTOM_ENTRY_SCAN fscanf(readCustomEntriesFile, "%hd%hhd%hhd %[^\n]s", &bookEntry.data, &bookEntry.year, &bookEntry.score, bookEntry.name)
-    for(int currentEntry = 1; CUSTOM_ENTRY_SCAN != EOF; currentEntry++) {
+    for(; CUSTOM_ENTRY_SCAN != EOF;) {
       fgetc(readCustomEntriesFile);
       fscanf(readCustomEntriesFile, "%[^\n]s", bookEntry.author);
-      printf("%d ", currentEntry);
+      printf("%d ", ++currentEntry);
       PrintBookPageEntry(&bookEntry, type);
     }
     free(bookEntry.name);
@@ -138,12 +146,18 @@ void ReadCustomPage(const char* filepath) {
   } else {
     Entry entry = GenEntry();
     #define ENTRY_SCAN fscanf(readCustomEntriesFile, "%hd%hhd%hhd %[^\n]s", &entry.data, &entry.year, &entry.group, entry.name)
-    for(int currentEntry = 1; ENTRY_SCAN != EOF; currentEntry++) {
-      printf("%d ", currentEntry);
+    for(; ENTRY_SCAN != EOF;) {
+      printf("%d ", ++currentEntry);
       PrintEntry(&entry);
     }
     free(entry.name);
   }
+
+  if(currentEntry == 0) {
+    printf("-EMPTY-\n");
+  }
+
+  mind->maximumNavi = currentEntry;
 
   fclose(readCustomEntriesFile);
 }

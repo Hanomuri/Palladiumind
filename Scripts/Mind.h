@@ -19,9 +19,9 @@ char bits is 2000+year
 #ifndef _SECTIONS
   #define _SECTIONS
   #define HOME                  0x80
-  #define FUTURE_LOG            0x40
-  #define MONTLY                0x20
-  #define CUSTOM                0x10
+  #define MARKED                0x40
+  #define CUSTOM                0x20
+  #define CONFIG                0x10
   #define ENTRY                 0x8
   #define BOARD                 0x4
 #endif
@@ -51,8 +51,11 @@ char bits is 2000+year
 #define CLEAR_BIT(x, n) (n & (~(1 << (n - 1))))
 
 typedef struct Mind {
+  unsigned char       currentNavi;
+  unsigned char       maximumNavi;
   unsigned char       section;
   char*               filepath;
+  char*               pageName;
   short               heightInCommand;
   size_t*             currentCollum;
 }Mind;

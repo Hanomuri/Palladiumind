@@ -13,7 +13,7 @@ static void CallCommand(const CommandList* commandList, Mind* mind) {
   
   if(mind->section & HOME) {
     if (strcmp(commandHead->argument, "CUSTOM") == 0) {
-      (mind->section) = (mind->section)>>3;
+      (mind->section) = CUSTOM;
       FormatScreen((mind));
     }
     else if (strcmp(commandHead->argument, "ADD") == 0) {
@@ -55,15 +55,12 @@ static void CallCommand(const CommandList* commandList, Mind* mind) {
     }
     FormatData(mind);
   } 
-  else if (mind->section & FUTURE_LOG) {
-
-  }
-  else if (mind->section & MONTLY) {
+  else if (mind->section & MARKED) {
 
   }
   else if (mind->section & CUSTOM) {
     if (strcmp(commandHead->argument, "HOME") == 0 || strcmp(commandHead->argument, "GOHO-M") == 0) {
-      (mind->section) = (mind->section)<<3;
+      (mind->section) = HOME;
       FormatScreen((mind));
     }
     else if (strcmp(commandHead->argument, "ADD") == 0) {
@@ -73,6 +70,9 @@ static void CallCommand(const CommandList* commandList, Mind* mind) {
       EnterCustomPage(commandList, atoi(commandHead->next->argument), mind);
     }
     FormatData(mind);
+  }
+  else if (mind->section & CONFIG) {
+
   }
 }
 

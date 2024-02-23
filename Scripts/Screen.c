@@ -65,7 +65,7 @@ void PrintCurrentTime(unsigned char width) {
   printf("\33[0;%dH%s\n", width-4, timeBuffer);
 }
 
-void FormatData(const Mind* mind) {
+void FormatData(Mind* mind) {
   struct winsize terminal;
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal);
 
@@ -80,7 +80,7 @@ void FormatData(const Mind* mind) {
     ReadCustomData();
   }
   else if (mind->section & ENTRY) {
-    ReadCustomPage(mind->filepath);
+    ReadCustomPage(mind);
   }
   else if (mind->section & BOARD) {
     DisplayBoard(mind->filepath);
@@ -88,14 +88,7 @@ void FormatData(const Mind* mind) {
   CursorCommandToTheBottom(mind->currentCollum);
 }
 
-void FormatScreen(const Mind* mind){
-  printf("\033[H\33[K");
-
-  struct winsize terminal;
-  ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal);
-
-  printf(COLOR_BOLD "\033[1FPalladiumind" ATTR_OFF);
-  
+void FormatHomeTopBar(const Mind* mind, const int width) {
   char pagesName[4][10];
   memset(pagesName[0], 0, 10*sizeof(char));
   memset(pagesName[1], 0, 10*sizeof(char));
@@ -109,9 +102,9 @@ void FormatScreen(const Mind* mind){
   
   unsigned char currentSection;
 
-  if(WIDTH > 45){
+  if(width > 45){
     for(int i = 0; i < 4; i++){
-      for(int k = 0; k < (WIDTH-40)/5; k++){
+      for(int k = 0; k < (width-40)/5; k++){
         printf(" ");
       }
       currentSection = pow(2, 4-i);
@@ -121,6 +114,22 @@ void FormatScreen(const Mind* mind){
       printf("%s", pagesName[i]);
       printf(ATTR_OFF);
     } 
+  }
+}
+
+void FormatScreen(const Mind* mind){
+  printf("\033[H\33[K");
+
+  struct winsize terminal;
+  ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal);
+
+  printf(COLOR_BOLD "\033[1FPalladiumind" ATTR_OFF);
+  
+  if((mind->section & ENTRY || mind->section & BOARD)) {
+    printf(" \033[%ldC", (WIDTH-strlen(mind->pageName))/2-strlen("Palladiumind"));
+    printf(COLOR_BOLD "%s" ATTR_OFF, mind->pageName);
+  } else {
+    FormatHomeTopBar(mind, WIDTH);
   }
 
   PrintCurrentTime(WIDTH);
