@@ -30,6 +30,10 @@
     #define _CUSTOM
     #include "../Custom.h"
 #endif
+#ifndef _SCREEN
+    #define _SCREEN
+    #include "../Screen.h"
+#endif
 
 #define WISHLIST         0x4000
 #define READING           0x5000
@@ -112,6 +116,7 @@ static void EnterCustomPage (const CommandList* commandList, size_t enterPage, M
       strcpy(mind->filepath, "Custom/");
       strcat(mind->filepath, readPage.name);
       strcat(mind->filepath, ".txt");
+      strcpy(mind->pageName, readPage.name);
       mind->section = ENTRY;
       break;
     }
@@ -120,6 +125,8 @@ static void EnterCustomPage (const CommandList* commandList, size_t enterPage, M
 
   free(readPage.name);
   fclose(readCustomFile);
+
+  FormatScreen(mind);
 }
 static void AddCustomCommand(const CommandList* commandList, char** filepath) {
   CommandBlock* current = commandList->head->next;

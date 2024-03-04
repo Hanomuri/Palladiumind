@@ -7,6 +7,6 @@
 void CursorToTheBottom();
 unsigned char GetTerminalWidth();
 void PrintCurrentTime(unsigned char width);
-void FormatData(const Mind* mind);
+void FormatData(Mind* mind);
 void FormatScreen(const Mind* mind);
 void* DisplayCheck(void* args);
