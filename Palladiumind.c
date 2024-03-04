@@ -16,8 +16,15 @@
 #include "Scripts/CommandMode.h"
 #include "Scripts/Custom.h"
 
+
+#define UP_KEY                0x48
+#define LEFT_KEY              0x4B
+#define DOWN_KEY              0x50
+#define RIGHT_KEY             0x4D
 #define ESC_KEY               0x1B
 #define COLON                 0x3A
+
+#define ESCAPE_ANSII          0x1B
 
 #define PALLADIUM_VERSION     0.15
 
@@ -52,18 +59,33 @@ signed main(){
   mind.filepath        = malloc(60*sizeof(char));
   memset(mind.filepath, 0, 60*sizeof(char));
   
-  pthread_t checkThread;
+  pthread_t checkThread, escapeCheckThread;
   FormatData(&mind);
   pthread_create(&checkThread, NULL, DisplayCheck, &mind);
 
-  char c;
+  unsigned char c;
+  unsigned char escape;
+  unsigned char secuence;
+
+  FILE* a = fopen("a.txt", "a");
 
   while(true){
     c = getc(stdin);
 
+    if(c == ESCAPE_ANSII) {
+      escape    = getc(stdin);
+      secuence  = getc(stdin);
+    }
+
+    fprintf(a, "%c\n", escape);
+    fprintf(a, "%c\n", secuence);
+    
     if(c == COLON) {
       printf("%c", COLON);
       CommandMode(&mind);
+    }
+    else if (c == UP_KEY || c == LEFT_KEY || c == DOWN_KEY || c == RIGHT_KEY) {
+
     }
     else if (c == ESC_KEY && (mind.section & ENTRY || mind.section & BOARD)) {
       mind.section = CUSTOM;
@@ -75,6 +97,8 @@ signed main(){
       break;
     }
   }
+
+  fclose(a);
 
   EXIT_PALLADIUM_SCREEN;
   return 0;
