@@ -1,9 +1,9 @@
 C = gcc
-CFLAGS = -lm -g -lpthread -Wall -Wpedantic -Wstrict-aliasing -I "Include/"
-RESOURCESDIR = Resources
-CUSTOMDIR = Custom
-SRC = Src
-SRC_STRUCTURES = Src/DataStructures
+CFLAGS = -lm -g -lpthread -Wall -Wno-return-type -Wstrict-aliasing -I "include/"
+RESOURCESDIR = resources
+CUSTOMDIR = custom
+SRC = src
+SRC_STRUCTURES = src/DataStructures
 
 STRUCTURES = AVLTree.o BookLinkedList.o
 
